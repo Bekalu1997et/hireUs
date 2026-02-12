@@ -34,6 +34,20 @@ class Settings(BaseSettings):
         default="gpt-4",
         description="OpenAI model to use"
     )
+
+    # Ollama (local LLM fallback)
+    ollama_enabled: bool = Field(
+        default=True,
+        description="Enable Ollama local LLM fallback"
+    )
+    ollama_base_url: str = Field(
+        default="http://localhost:11434",
+        description="Ollama API base URL"
+    )
+    ollama_model: str = Field(
+        default="phi4:latest",
+        description="Ollama model to use"
+    )
     
     # CORS
     cors_origins: list[str] = Field(

@@ -49,54 +49,52 @@ class AuthService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=error_message
             )
-        
-        # Check if user already exists
-        existing_user = await self.repository.get_user_by_email(user_data.email)
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
+
+        async with self.db.begin():
+            # Check if user already exists
+            existing_user = await self.repository.get_user_by_email(user_data.email)
+            if existing_user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email already registered"
+                )
+
+            # Check if organization domain already exists
+            existing_org = await self.repository.get_organization_by_domain(
+                user_data.organization_domain
             )
-        
-        # Check if organization domain already exists
-        existing_org = await self.repository.get_organization_by_domain(
-            user_data.organization_domain
-        )
-        if existing_org:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Organization domain already exists"
+            if existing_org:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Organization domain already exists"
+                )
+
+            # Create organization
+            organization = await self.repository.create_organization(
+                name=user_data.organization_name,
+                domain=user_data.organization_domain
             )
-        
-        # Create organization
-        organization = await self.repository.create_organization(
-            name=user_data.organization_name,
-            domain=user_data.organization_domain
-        )
-        
-        # Hash password
-        hashed_password = hash_password(user_data.password)
-        
-        # Create user as founder
-        user = await self.repository.create_user(
-            email=user_data.email,
-            hashed_password=hashed_password,
-            full_name=user_data.full_name,
-            role="founder",
-            organization_id=organization.id
-        )
-        
-        # Commit transaction
-        await self.db.commit()
-        
-        # Create token
+
+            # Hash password
+            hashed_password = hash_password(user_data.password)
+
+            # Create user as founder
+            user = await self.repository.create_user(
+                email=user_data.email,
+                hashed_password=hashed_password,
+                full_name=user_data.full_name,
+                role="founder",
+                organization_id=organization.id
+            )
+
+        # Create token after successful transaction
         token = create_user_token(
             user_id=user.id,
             email=user.email,
             role=user.role,
             organization_id=user.organization_id
         )
-        
+
         return user, token
     
     async def login_user(self, login_data: UserLogin) -> Tuple[User, str]:
