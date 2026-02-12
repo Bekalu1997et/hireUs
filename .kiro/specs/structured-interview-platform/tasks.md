@@ -60,7 +60,7 @@ Each task builds on previous work and includes validation through tests. The pla
 - [x] 3. Checkpoint - Ensure authentication tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [-] 4. Implement roles and competencies module
+- [x] 4. Implement roles and competencies module
   - [x] 4.1 Create Role and Competency database models
     - Implement Role model with organization relationship
     - Implement Competency model with role relationship
@@ -89,11 +89,11 @@ Each task builds on previous work and includes validation through tests. The pla
     - **Property 9: Role Validation**
     - **Validates: Requirements 3.2**
 
-  - [ ] 4.6 Write property test for competency weight validation
+  - [x] 4.6 Write property test for competency weight validation
     - **Property 10: Competency Weight Validation**
     - **Validates: Requirements 3.4**
 
-  - [ ] 4.7 Implement roles router endpoints
+  - [x] 4.7 Implement roles router endpoints
     - POST /api/roles endpoint
     - GET /api/roles/{role_id} endpoint
     - GET /api/roles endpoint (list for organization)
@@ -101,7 +101,7 @@ Each task builds on previous work and includes validation through tests. The pla
     - DELETE /api/roles/{role_id} endpoint
     - _Requirements: 3.1, 11.1, 11.2_
 
-  - [ ] 4.8 Write unit tests for role endpoints
+  - [x] 4.8 Write unit tests for role endpoints
     - Test role creation with valid data
     - Test role creation without competencies (should fail)
     - Test role retrieval

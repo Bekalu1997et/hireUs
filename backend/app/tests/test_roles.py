@@ -575,3 +575,122 @@ async def test_role_organization_isolation(db_session: AsyncSession):
         await roles_service.get_role(role.id, user2.organization_id)
     
     assert exc_info.value.status_code == 403
+
+
+
+# API Endpoint Tests
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_create_role_endpoint_success(db_session: AsyncSession):
+    """Test POST /api/roles endpoint with valid data."""
+    from httpx import AsyncClient
+    from app.main import app
+    
+    # Create founder
+    auth_service = AuthService(db_session)
+    user_data = UserRegister(
+        email="founder@example.com",
+        password="StrongPass123",
+        full_name="Founder User",
+        organization_name="Test Org",
+        organization_domain="testorg.com"
+    )
+    user, token = await auth_service.register_user(user_data)
+    
+    # Create role via API
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.post(
+            "/api/roles",
+            json={
+                "title": "Backend Engineer",
+                "description": "Backend developer",
+                "seniority_level": "senior",
+                "competencies": [
+                    {"name": "Python", "description": "Python programming", "weight": 0.5},
+                    {"name": "SQL", "description": "Database skills", "weight": 0.5}
+                ]
+            },
+            headers={"Authorization": f"Bearer {token}"}
+        )
+    
+    assert response.status_code == 201
+    data = response.json()
+    assert data["title"] == "Backend Engineer"
+    assert data["seniority_level"] == "senior"
+    assert len(data["competencies"]) == 2
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_create_role_endpoint_without_competencies_fails(db_session: AsyncSession):
+    """Test POST /api/roles endpoint without competencies fails."""
+    from httpx import AsyncClient
+    from app.main import app
+    
+    # Create founder
+    auth_service = AuthService(db_session)
+    user_data = UserRegister(
+        email="founder@example.com",
+        password="StrongPass123",
+        full_name="Founder User",
+        organization_name="Test Org",
+        organization_domain="testorg.com"
+    )
+    user, token = await auth_service.register_user(user_data)
+    
+    # Try to create role without competencies
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.post(
+            "/api/roles",
+            json={
+                "title": "Backend Engineer",
+                "description": "Backend developer",
+                "seniority_level": "senior",
+                "competencies": []
+            },
+            headers={"Authorization": f"Bearer {token}"}
+        )
+    
+    assert response.status_code == 422  # Validation error
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_role_endpoint(db_session: AsyncSession):
+    """Test GET /api/roles/{role_id} endpoint."""
+    from httpx import AsyncClient
+    from app.main import app
+    
+    # Create founder and role
+    auth_service = AuthService(db_session)
+    user_data = UserRegister(
+        email="founder@example.com",
+        password="StrongPass123",
+        full_name="Founder User",
+        organization_name="Test Org",
+        organization_domain="testorg.com"
+    )
+    user, token = await auth_service.register_user(user_data)
+    
+    roles_service = RolesService(db_session)
+    role_data = RoleCreate(
+        title="Engineer",
+        description="Description",
+        seniority_level="mid",
+        competencies=[
+            CompetencyCreate(name="Skill", description="Desc", weight=1.0)
+        ]
+    )
+    role = await roles_service.create_role(role_data, user.organization_id)
+    
+    # Get role via API
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get(
+            f"/api/roles/{role.id}",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == role.id
+    assert data["title"] == "Engineer"

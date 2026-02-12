@@ -26,6 +26,9 @@ def create_application() -> FastAPI:
     from app.modules.auth.router import router as auth_router
     app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
     
+    from app.modules.roles.router import router as roles_router
+    app.include_router(roles_router, prefix="/api/roles", tags=["roles"])
+    
     @app.get("/health")
     async def health_check():
         """Health check endpoint."""
