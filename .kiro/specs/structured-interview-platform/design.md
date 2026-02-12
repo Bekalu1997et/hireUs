@@ -47,6 +47,166 @@ graph TB
     Decisions --> DB
 ```
 
+### End-to-End Interview Process Flow
+
+This section describes the complete journey from role definition to hiring decision, showing how all modules and database entities connect:
+
+```mermaid
+sequenceDiagram
+    participant F as Founder
+    participant R as Roles Module
+    participant IK as Interview Kits Module
+    participant W as Workflows Module
+    participant I as Interviewer
+    participant E as Evaluations Module
+    participant D as Decisions Module
+    participant AI as AI Module
+    participant DB as Database
+
+    Note over F,DB: Phase 1: Role Definition
+    F->>R: Create Role with Competencies
+    R->>DB: Store Role + Competencies
+    DB-->>R: role_id
+    R-->>F: Role Created
+
+    Note over F,DB: Phase 2: Interview Kit Generation
+    F->>IK: Generate Interview Kit for Role
+    IK->>DB: Fetch Role + Competencies
+    DB-->>IK: Role Data
+    IK->>AI: Generate Questions (role context)
+    AI-->>IK: Questions JSON
+    IK->>DB: Store InterviewKit + Questions
+    DB-->>IK: kit_id
+    IK-->>F: Interview Kit Ready
+
+    Note over F,DB: Phase 3: Workflow Creation
+    F->>W: Create Workflow (candidate, role)
+    W->>DB: Store Workflow + Stages
+    DB-->>W: workflow_id
+    W-->>F: Workflow Created
+
+    Note over F,DB: Phase 4: Evaluation Collection
+    loop For Each Interviewer
+        I->>E: Submit Evaluation + Scores
+        E->>DB: Fetch Workflow + Role Competencies
+        DB-->>E: Validation Data
+        E->>E: Validate Scores
+        E->>DB: Store Evaluation + Scores
+        E->>DB: Update WorkflowStage Status
+        DB-->>E: evaluation_id
+        E-->>I: Evaluation Submitted
+    end
+
+    Note over F,DB: Phase 5: Decision Generation
+    F->>D: Request Decision Brief
+    D->>DB: Fetch All Evaluations for Workflow
+    DB-->>D: Evaluations + Scores
+    D->>D: Calculate Aggregated Scores
+    D->>AI: Generate Brief (evaluations, scores)
+    AI-->>D: Decision Brief JSON
+    D->>DB: Store Decision
+    DB-->>D: decision_id
+    D-->>F: Decision Brief
+
+    Note over F,DB: Phase 6: Final Decision
+    F->>D: Record Final Decision (hire/no-hire)
+    D->>DB: Update Decision + Workflow Status
+    DB-->>D: Confirmed
+    D-->>F: Decision Recorded
+```
+
+### Database Schema Relationships
+
+The database schema enforces referential integrity across the entire interview process:
+
+```mermaid
+erDiagram
+    Organization ||--o{ User : has
+    Organization ||--o{ Role : defines
+    Organization ||--o{ Workflow : manages
+    
+    Role ||--o{ Competency : requires
+    Role ||--o{ InterviewKit : has
+    Role ||--o{ Workflow : for
+    
+    InterviewKit ||--o{ InterviewQuestion : contains
+    InterviewQuestion }o--|| Competency : evaluates
+    
+    Candidate ||--o{ Workflow : applies_to
+    
+    Workflow ||--o{ WorkflowStage : has
+    Workflow ||--o{ Evaluation : collects
+    Workflow ||--|| Decision : results_in
+    
+    WorkflowStage }o--|| User : assigned_to
+    WorkflowStage ||--|| Evaluation : completed_by
+    
+    Evaluation }o--|| User : submitted_by
+    Evaluation ||--o{ EvaluationScore : contains
+    
+    EvaluationScore }o--|| Competency : scores
+    
+    Decision }o--|| User : made_by
+```
+
+### Module Dependencies and Data Flow
+
+**Module Dependency Graph:**
+
+```mermaid
+graph TD
+    Auth[Auth Module]
+    Org[Organization Module]
+    Roles[Roles Module]
+    Kits[Interview Kits Module]
+    Workflows[Workflows Module]
+    Evals[Evaluations Module]
+    Decisions[Decisions Module]
+    AI[AI Module - Shared Service]
+    
+    Auth -.->|authenticates| Org
+    Auth -.->|authenticates| Roles
+    Auth -.->|authenticates| Kits
+    Auth -.->|authenticates| Workflows
+    Auth -.->|authenticates| Evals
+    Auth -.->|authenticates| Decisions
+    
+    Org -->|provides context| Roles
+    Org -->|provides context| Workflows
+    
+    Roles -->|provides schema| Kits
+    Roles -->|provides schema| Workflows
+    Roles -->|provides schema| Evals
+    
+    Kits -->|uses| AI
+    
+    Workflows -->|orchestrates| Evals
+    
+    Evals -->|provides data| Decisions
+    
+    Decisions -->|uses| AI
+    
+    style AI fill:#f9f,stroke:#333,stroke-width:4px
+```
+
+**Key Integration Points:**
+
+1. **Roles → Interview Kits**: Role and competency definitions drive interview question generation
+2. **Roles → Workflows**: Role competencies define what evaluators must score
+3. **Workflows → Evaluations**: Workflow stages determine who evaluates and when
+4. **Evaluations → Decisions**: All evaluations aggregate into decision briefs
+5. **AI Module**: Shared by Interview Kits and Decisions for LLM operations
+
+### Data Consistency Rules
+
+**Cross-Module Constraints:**
+
+1. **Role Immutability**: Once a workflow references a role, that role version is frozen for that workflow
+2. **Evaluation Completeness**: All competencies defined in the role must be scored in each evaluation
+3. **Workflow Progression**: Stages must be completed in order (stage N+1 cannot start until stage N is complete)
+4. **Decision Finality**: Once a decision is recorded, the workflow becomes read-only
+5. **Competency Mapping**: Interview questions must map to existing competencies in the role
+
 ### Module Structure
 
 Each module follows a three-layer pattern:
