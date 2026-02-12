@@ -94,6 +94,14 @@ class EvaluationsService:
                 detail="You are not assigned to this workflow stage",
             )
 
+        # Enforce stage progression (previous stages must be completed)
+        for wf_stage in workflow.stages:
+            if wf_stage.stage_order < stage.stage_order and wf_stage.status != "completed":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Previous workflow stages must be completed before starting this stage",
+                )
+
         self._validate_scores(workflow, [s.model_dump() for s in evaluation_data.scores])
 
         async with self.db.begin():

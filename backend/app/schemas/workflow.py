@@ -32,6 +32,16 @@ class WorkflowStagesUpdate(BaseModel):
     stages: List[WorkflowStageUpdate] = Field(min_length=1)
 
 
+class WorkflowReopen(BaseModel):
+    """Schema for reopening a workflow."""
+    reason: str = Field(min_length=3)
+
+
+class WorkflowNotesUpdate(BaseModel):
+    """Schema for updating workflow notes."""
+    notes: str | None = Field(None, max_length=5000)
+
+
 class WorkflowStageResponse(BaseModel):
     """Schema for workflow stage response."""
     id: int
@@ -52,7 +62,12 @@ class WorkflowResponse(BaseModel):
     status: str
     created_at: datetime
     completed_at: datetime | None
+    is_locked: bool
+    notes: str | None
+    reopened_at: datetime | None
+    reopen_reason: str | None
     stages: List[WorkflowStageResponse]
+    role_snapshot: dict | None = None
 
     class Config:
         from_attributes = True

@@ -6,7 +6,7 @@ All models use SQLAlchemy 2.0 with async support and type annotations.
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import String, Text, Integer, Float, ForeignKey, UniqueConstraint, CheckConstraint
+from sqlalchemy import String, Text, Integer, Float, ForeignKey, UniqueConstraint, CheckConstraint, JSON, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -165,6 +165,10 @@ class Workflow(Base):
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     completed_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    is_locked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    reopened_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    reopen_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # Relationships
     candidate: Mapped["Candidate"] = relationship(back_populates="workflows")
@@ -173,6 +177,44 @@ class Workflow(Base):
     stages: Mapped[List["WorkflowStage"]] = relationship(back_populates="workflow", cascade="all, delete-orphan")
     evaluations: Mapped[List["Evaluation"]] = relationship(back_populates="workflow")
     decision: Mapped[Optional["Decision"]] = relationship(back_populates="workflow", uselist=False)
+    role_snapshot: Mapped[Optional["RoleSnapshot"]] = relationship(back_populates="workflow", uselist=False)
+
+
+class RoleSnapshot(Base):
+    """
+    RoleSnapshot model representing a frozen role definition for a workflow.
+
+    Captures role fields and competencies at workflow creation time.
+    """
+    __tablename__ = "role_snapshots"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workflow_id: Mapped[int] = mapped_column(ForeignKey("workflows.id"), unique=True)
+    role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))
+    data: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+    # Relationships
+    workflow: Mapped["Workflow"] = relationship(back_populates="role_snapshot")
+    role: Mapped["Role"] = relationship()
+
+
+class AuditLog(Base):
+    """
+    AuditLog model for tracking changes to critical entities.
+    """
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    entity_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    action: Mapped[str] = mapped_column(String(50), nullable=False)
+    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    before_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    after_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+    actor: Mapped["User"] = relationship()
 
 
 class WorkflowStage(Base):

@@ -4,12 +4,14 @@ Service layer for workflow operations.
 Handles workflow creation, retrieval, and stage assignment updates.
 """
 from typing import List
+from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import WorkflowStage, Workflow, User
+from app.modules.audit.repository import AuditRepository
 from app.modules.workflows.repository import WorkflowsRepository
-from app.schemas.workflow import WorkflowCreate, WorkflowStagesUpdate
+from app.schemas.workflow import WorkflowCreate, WorkflowStagesUpdate, WorkflowReopen, WorkflowNotesUpdate
 
 
 class WorkflowService:
@@ -18,6 +20,7 @@ class WorkflowService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.repository = WorkflowsRepository(db)
+        self.audit = AuditRepository(db)
 
     def _validate_stage_ordering(self, stages: List[WorkflowStage]) -> None:
         """
@@ -81,6 +84,13 @@ class WorkflowService:
                 detail="Workflow does not belong to your organization",
             )
 
+    def _ensure_mutable(self, workflow: Workflow) -> None:
+        if workflow.is_locked:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow cannot be modified after final decision",
+            )
+
     async def create_workflow(self, data: WorkflowCreate, user: User) -> Workflow:
         role = await self.repository.get_role_by_id(data.role_id)
         if not role:
@@ -131,9 +141,39 @@ class WorkflowService:
                 organization_id=user.organization_id,
                 status="pending",
             )
+            snapshot_data = {
+                "role": {
+                    "id": role.id,
+                    "title": role.title,
+                    "description": role.description,
+                    "seniority_level": role.seniority_level,
+                },
+                "competencies": [
+                    {
+                        "id": comp.id,
+                        "name": comp.name,
+                        "description": comp.description,
+                        "weight": comp.weight,
+                    }
+                    for comp in role.competencies
+                ],
+            }
+            await self.repository.create_role_snapshot(
+                workflow_id=workflow.id,
+                role_id=role.id,
+                data=snapshot_data,
+            )
             await self.repository.create_workflow_stages(
                 workflow_id=workflow.id,
                 stages=data.stages,
+            )
+            await self.audit.create_log(
+                entity_type="workflow",
+                entity_id=workflow.id,
+                action="create",
+                actor_id=user.id,
+                before_data=None,
+                after_data={"status": workflow.status},
             )
 
         return await self.repository.get_workflow_by_id(workflow.id)
@@ -154,6 +194,7 @@ class WorkflowService:
     ) -> Workflow:
         workflow = await self._get_workflow_or_404(workflow_id)
         self._ensure_workflow_access(workflow, user)
+        self._ensure_mutable(workflow)
 
         stage_ids = [s.id for s in data.stages]
         existing_stages = await self.repository.get_stages_by_ids(stage_ids)
@@ -185,5 +226,79 @@ class WorkflowService:
 
         async with self.db.begin():
             await self.repository.update_workflow_stages(data.stages)
+            await self.audit.create_log(
+                entity_type="workflow",
+                entity_id=workflow.id,
+                action="update_stages",
+                actor_id=user.id,
+                before_data=None,
+                after_data={"stage_updates": [s.model_dump() for s in data.stages]},
+            )
+
+        return await self.repository.get_workflow_by_id(workflow.id)
+
+    async def reopen_workflow(
+        self,
+        workflow_id: int,
+        data: WorkflowReopen,
+        user: User,
+    ) -> Workflow:
+        workflow = await self._get_workflow_or_404(workflow_id)
+        self._ensure_workflow_access(workflow, user)
+        if user.role != "founder":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only founders can reopen workflows",
+            )
+
+        before = {
+            "status": workflow.status,
+            "is_locked": workflow.is_locked,
+            "reopened_at": workflow.reopened_at,
+            "reopen_reason": workflow.reopen_reason,
+        }
+
+        async with self.db.begin():
+            workflow.status = "pending"
+            workflow.is_locked = False
+            workflow.reopened_at = datetime.utcnow()
+            workflow.reopen_reason = data.reason
+            await self.audit.create_log(
+                entity_type="workflow",
+                entity_id=workflow.id,
+                action="reopen",
+                actor_id=user.id,
+                before_data=before,
+                after_data={
+                    "status": workflow.status,
+                    "is_locked": workflow.is_locked,
+                    "reopened_at": workflow.reopened_at.isoformat(),
+                    "reopen_reason": workflow.reopen_reason,
+                },
+            )
+
+        return await self.repository.get_workflow_by_id(workflow.id)
+
+    async def update_workflow_notes(
+        self,
+        workflow_id: int,
+        data: WorkflowNotesUpdate,
+        user: User,
+    ) -> Workflow:
+        workflow = await self._get_workflow_or_404(workflow_id)
+        self._ensure_workflow_access(workflow, user)
+
+        before = {"notes": workflow.notes}
+
+        async with self.db.begin():
+            workflow.notes = data.notes
+            await self.audit.create_log(
+                entity_type="workflow",
+                entity_id=workflow.id,
+                action="update_notes",
+                actor_id=user.id,
+                before_data=before,
+                after_data={"notes": workflow.notes},
+            )
 
         return await self.repository.get_workflow_by_id(workflow.id)

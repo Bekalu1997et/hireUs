@@ -4,11 +4,12 @@ A comprehensive hiring platform with AI-assisted interview kits, structured eval
 
 ## Features
 
-- **Role Blueprint**: AI-powered role requirement analysis
+- **Role Blueprint**: Role + competency definition (AI blueprint planned)
 - **Interview Kit Builder**: Generate questions and rubrics automatically
 - **Structured Scorecards**: Consistent evaluation across candidates
-- **Workflow Board**: Kanban-style candidate pipeline
+- **Workflow Pipeline**: Candidate workflows with stages and assignment
 - **Decision Briefs**: AI-powered candidate comparison and recommendations
+- **Signals Aggregation**: Aggregate competency scores across evaluations
 
 ## Tech Stack
 
@@ -18,6 +19,7 @@ A comprehensive hiring platform with AI-assisted interview kits, structured eval
 - Pydantic
 - JWT Authentication
 - Alembic Migrations
+- OpenAI + Ollama fallback (local LLM)
 
 ### Frontend
 - Next.js 14 (App Router)
@@ -66,6 +68,13 @@ hireUs/
 │   │   ├── db/                  # Database layer
 │   │   ├── schemas/             # Pydantic schemas
 │   │   ├── modules/             # Feature modules
+│   │   │   ├── audit/            # Audit logging
+│   │   │   ├── organization/     # Organization + invites
+│   │   │   ├── interview_kits/   # Interview kit generation
+│   │   │   ├── workflows/        # Workflow orchestration
+│   │   │   ├── evaluations/      # Evaluation submission
+│   │   │   ├── decisions/        # Decision generation
+│   │   │   └── signals/          # Candidate signal aggregation
 │   │   └── tests/               # Tests
 │   ├── alembic/                 # Migrations
 │   └── requirements.txt
@@ -83,4 +92,3 @@ hireUs/
 ## License
 
 MIT
-

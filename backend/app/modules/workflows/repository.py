@@ -14,6 +14,7 @@ from app.db.models import (
     Candidate,
     Role,
     User,
+    RoleSnapshot,
 )
 
 
@@ -62,6 +63,22 @@ class WorkflowsRepository:
         await self.db.refresh(workflow)
         return workflow
 
+    async def create_role_snapshot(
+        self,
+        workflow_id: int,
+        role_id: int,
+        data: dict,
+    ) -> RoleSnapshot:
+        snapshot = RoleSnapshot(
+            workflow_id=workflow_id,
+            role_id=role_id,
+            data=data,
+        )
+        self.db.add(snapshot)
+        await self.db.flush()
+        await self.db.refresh(snapshot)
+        return snapshot
+
     async def create_workflow_stages(
         self,
         workflow_id: int,
@@ -85,6 +102,8 @@ class WorkflowsRepository:
             .options(
                 selectinload(Workflow.candidate),
                 selectinload(Workflow.stages),
+                selectinload(Workflow.role_snapshot),
+                selectinload(Workflow.decision),
             )
         )
         return result.scalar_one_or_none()

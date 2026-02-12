@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Workflow, User
 from app.modules.decisions.repository import DecisionsRepository
+from app.modules.audit.repository import AuditRepository
 from app.modules.ai.client import AIClient
 from app.modules.ai.parser import parse_decision_brief_response, LLMParseError
 from app.modules.ai.validators import validate_decision_brief, LLMValidationError
@@ -24,6 +25,7 @@ class DecisionsService:
         self.db = db
         self.repository = DecisionsRepository(db)
         self.ai_client = AIClient()
+        self.audit = AuditRepository(db)
 
     async def _get_workflow_or_404(self, workflow_id: int) -> Workflow:
         workflow = await self.repository.get_workflow_with_details(workflow_id)
@@ -163,6 +165,19 @@ class DecisionsService:
 
             workflow.status = "completed"
             workflow.completed_at = datetime.utcnow()
+            workflow.is_locked = True
+
+            await self.audit.create_log(
+                entity_type="decision",
+                entity_id=decision.id,
+                action="create",
+                actor_id=user.id,
+                before_data=None,
+                after_data={
+                    "workflow_id": workflow.id,
+                    "outcome": decision.outcome,
+                },
+            )
 
         return decision
 

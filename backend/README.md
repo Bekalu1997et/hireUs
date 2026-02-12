@@ -29,6 +29,13 @@ cp ../.env.example ../.env
 # Edit .env with your configuration
 ```
 
+Key env vars:
+- `OPENAI_API_KEY` (optional if using Ollama)
+- `OPENAI_MODEL` (default `gpt-4`)
+- `OLLAMA_ENABLED` (default `True`)
+- `OLLAMA_BASE_URL` (default `http://localhost:11434`)
+- `OLLAMA_MODEL` (default `phi4:latest`)
+
 4. Create databases:
 ```bash
 # Create main database
@@ -111,7 +118,10 @@ backend/
 │   │   ├── interview_kits/  # Interview kit generation
 │   │   ├── workflows/   # Workflow orchestration
 │   │   ├── evaluations/ # Evaluation submission
-│   │   └── decisions/   # Decision generation
+│   │   ├── decisions/   # Decision generation
+│   │   ├── signals/     # Candidate signal aggregation
+│   │   ├── organization/ # Organization + invites
+│   │   └── audit/       # Audit logging
 │   ├── schemas/         # Pydantic schemas
 │   ├── tests/           # Test suite
 │   └── main.py          # Application entry point
@@ -142,3 +152,9 @@ All tests should be placed in `app/tests/` with the naming convention `test_*.py
 Once the server is running, visit:
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
+
+## Workflow Integrity
+
+- Workflows are locked after a final decision.
+- Founders can reopen a workflow with a reason.
+- Notes are editable even after decision.
