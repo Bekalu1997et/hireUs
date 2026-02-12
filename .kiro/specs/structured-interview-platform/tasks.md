@@ -8,7 +8,7 @@ Each task builds on previous work and includes validation through tests. The pla
 
 ## Tasks
 
-- [ ] 1. Set up project infrastructure and database foundation
+- [x] 1. Set up project infrastructure and database foundation
   - Create database configuration with SQLAlchemy async engine
   - Set up Alembic for database migrations
   - Create base models and database session management
@@ -17,57 +17,57 @@ Each task builds on previous work and includes validation through tests. The pla
   - Create initial migration for database schema
   - _Requirements: 10.1, 10.4_
 
-- [ ] 1.1 Write unit tests for database session management
+- [x] 1.1 Write unit tests for database session management
   - Test database connection and session lifecycle
   - Test transaction rollback on errors
   - _Requirements: 10.3_
 
-- [ ] 2. Implement authentication and authorization module
-  - [ ] 2.1 Create User and Organization database models
+- [x] 2. Implement authentication and authorization module
+  - [x] 2.1 Create User and Organization database models
     - Implement User model with hashed password field
     - Implement Organization model with relationships
     - _Requirements: 1.1, 2.5_
 
-  - [ ] 2.2 Implement password hashing and JWT token generation
+  - [x] 2.2 Implement password hashing and JWT token generation
     - Create security utilities for bcrypt password hashing
     - Create JWT token generation and validation functions
     - _Requirements: 2.1, 2.4, 2.5_
 
-  - [ ] 2.3 Write property test for password hashing
+  - [x] 2.3 Write property test for password hashing
     - **Property 7: Password Security**
     - **Validates: Requirements 2.5**
 
-  - [ ] 2.4 Implement authentication service layer
+  - [x] 2.4 Implement authentication service layer
     - Create user registration with organization creation
     - Create login with credential validation and token issuance
     - Create token validation and user extraction
     - _Requirements: 1.1, 2.1, 2.2_
 
-  - [ ] 2.5 Write property test for authentication correctness
+  - [x] 2.5 Write property test for authentication correctness
     - **Property 4: Authentication Correctness**
     - **Validates: Requirements 2.1, 2.2**
 
-  - [ ] 2.6 Implement authentication router endpoints
+  - [x] 2.6 Implement authentication router endpoints
     - POST /api/auth/register endpoint
     - POST /api/auth/login endpoint
     - Create JWT dependency for protected routes
     - _Requirements: 2.1, 2.2, 11.1, 11.2_
 
-  - [ ] 2.7 Write property test for role-based access control
+  - [x] 2.7 Write property test for role-based access control
     - **Property 5: Role-Based Access Control Enforcement**
     - **Validates: Requirements 2.3**
 
-- [ ] 3. Checkpoint - Ensure authentication tests pass
+- [x] 3. Checkpoint - Ensure authentication tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Implement roles and competencies module
-  - [ ] 4.1 Create Role and Competency database models
+- [-] 4. Implement roles and competencies module
+  - [x] 4.1 Create Role and Competency database models
     - Implement Role model with organization relationship
     - Implement Competency model with role relationship
     - Add cascade delete for competencies when role is deleted
     - _Requirements: 3.1, 3.3_
 
-  - [ ] 4.2 Implement roles repository layer
+  - [x] 4.2 Implement roles repository layer
     - Create role with competencies (transactional)
     - Get role by ID with competencies
     - List roles for organization
@@ -75,17 +75,17 @@ Each task builds on previous work and includes validation through tests. The pla
     - Delete role
     - _Requirements: 3.1, 3.3_
 
-  - [ ] 4.3 Implement roles service layer with validation
+  - [x] 4.3 Implement roles service layer with validation
     - Validate at least one competency exists
     - Validate competency weights sum to 1.0 (±0.01 tolerance)
     - Normalize competency weights if needed
     - _Requirements: 3.2, 3.4_
 
-  - [ ] 4.4 Write property test for role data persistence
+  - [x] 4.4 Write property test for role data persistence
     - **Property 8: Role Data Persistence**
     - **Validates: Requirements 3.1, 3.3**
 
-  - [ ] 4.5 Write property test for role validation
+  - [x] 4.5 Write property test for role validation
     - **Property 9: Role Validation**
     - **Validates: Requirements 3.2**
 
