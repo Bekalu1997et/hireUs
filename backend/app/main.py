@@ -28,6 +28,12 @@ def create_application() -> FastAPI:
     
     from app.modules.roles.router import router as roles_router
     app.include_router(roles_router, prefix="/api/roles", tags=["roles"])
+
+    from app.modules.decisions.router import router as decisions_router
+    app.include_router(decisions_router, prefix="/api/decisions", tags=["decisions"])
+
+    from app.modules.evaluations.router import router as evaluations_router
+    app.include_router(evaluations_router, prefix="/api/evaluations", tags=["evaluations"])
     
     @app.get("/health")
     async def health_check():

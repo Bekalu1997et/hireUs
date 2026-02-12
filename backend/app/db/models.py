@@ -6,7 +6,7 @@ All models use SQLAlchemy 2.0 with async support and type annotations.
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import String, Text, Integer, Float, ForeignKey
+from sqlalchemy import String, Text, Integer, Float, ForeignKey, UniqueConstraint, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -182,6 +182,10 @@ class WorkflowStage(Base):
     Each stage is assigned to an interviewer and tracks completion status.
     """
     __tablename__ = "workflow_stages"
+    __table_args__ = (
+        UniqueConstraint("workflow_id", "stage_order", name="uq_workflow_stage_order"),
+        CheckConstraint("stage_order >= 1", name="ck_workflow_stage_order_positive"),
+    )
     
     id: Mapped[int] = mapped_column(primary_key=True)
     workflow_id: Mapped[int] = mapped_column(ForeignKey("workflows.id"))
@@ -244,6 +248,8 @@ class Decision(Base):
     
     id: Mapped[int] = mapped_column(primary_key=True)
     workflow_id: Mapped[int] = mapped_column(ForeignKey("workflows.id"))
+    candidate_id: Mapped[int] = mapped_column(ForeignKey("candidates.id"))
+    role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))
     decision_maker_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     outcome: Mapped[str] = mapped_column(String(50), nullable=False)
     summary: Mapped[str] = mapped_column(Text, nullable=False)
@@ -255,3 +261,5 @@ class Decision(Base):
     # Relationships
     workflow: Mapped["Workflow"] = relationship(back_populates="decision")
     decision_maker: Mapped["User"] = relationship()
+    candidate: Mapped["Candidate"] = relationship()
+    role: Mapped["Role"] = relationship()
