@@ -135,6 +135,12 @@ class DecisionsService:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=str(exc),
             )
+        except Exception as exc:
+            print("LLM invocation failed (decision brief):", repr(exc))
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="LLM invocation failed; please retry",
+            )
 
         return DecisionBriefResponse(**parsed)
 
@@ -150,7 +156,7 @@ class DecisionsService:
         self._ensure_workflow_access(workflow, user)
         self._ensure_no_final_decision(workflow)
 
-        async with self.db.begin():
+        async with self.db.begin_nested():
             decision = await self.repository.create_decision(
                 workflow_id=workflow.id,
                 candidate_id=workflow.candidate_id,

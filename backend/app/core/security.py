@@ -169,6 +169,10 @@ def validate_password_strength(password: str) -> tuple[bool, Optional[str]]:
         >>> validate_password_strength("StrongPass123")
         (True, None)
     """
+    # bcrypt only supports up to 72 bytes
+    if len(password.encode("utf-8")) > 72:
+        return False, "Password must be at most 72 bytes long"
+
     if len(password) < 8:
         return False, "Password must be at least 8 characters long"
     

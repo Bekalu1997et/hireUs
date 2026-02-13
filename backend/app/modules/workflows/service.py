@@ -130,7 +130,7 @@ class WorkflowService:
         stage_models = [WorkflowStage(stage_order=s.stage_order, interviewer_id=s.interviewer_id) for s in data.stages]
         self._validate_stage_ordering(stage_models)
 
-        async with self.db.begin():
+        async with self.db.begin_nested():
             candidate = await self.repository.create_candidate(
                 full_name=data.candidate.full_name,
                 email=data.candidate.email,
@@ -224,7 +224,7 @@ class WorkflowService:
                     detail="Interviewer does not belong to your organization",
                 )
 
-        async with self.db.begin():
+        async with self.db.begin_nested():
             await self.repository.update_workflow_stages(data.stages)
             await self.audit.create_log(
                 entity_type="workflow",
@@ -258,7 +258,7 @@ class WorkflowService:
             "reopen_reason": workflow.reopen_reason,
         }
 
-        async with self.db.begin():
+        async with self.db.begin_nested():
             workflow.status = "pending"
             workflow.is_locked = False
             workflow.reopened_at = datetime.utcnow()
@@ -290,7 +290,7 @@ class WorkflowService:
 
         before = {"notes": workflow.notes}
 
-        async with self.db.begin():
+        async with self.db.begin_nested():
             workflow.notes = data.notes
             await self.audit.create_log(
                 entity_type="workflow",

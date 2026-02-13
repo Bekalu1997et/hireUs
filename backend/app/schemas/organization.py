@@ -29,4 +29,4 @@ class InviteRequest(BaseModel):
 class InviteAccept(BaseModel):
     """Schema for accepting an invitation."""
     token: str = Field(min_length=10)
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=8, max_length=72)

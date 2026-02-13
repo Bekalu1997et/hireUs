@@ -27,12 +27,13 @@ class AIClient:
         self.api_key = api_key or settings.openai_api_key
         self.model = model or settings.openai_model
         self.client = AsyncOpenAI(api_key=self.api_key) if self.api_key else None
-        self.timeout = 30.0  # 30 second timeout
+        self.timeout = 180.0  # 30 second timeout
         self.max_retries = 3
         self.retry_delays = [1.0, 2.0, 4.0]  # Exponential backoff
         self.ollama_enabled = settings.ollama_enabled
         self.ollama_base_url = settings.ollama_base_url.rstrip("/")
         self.ollama_model = settings.ollama_model
+        self.ollama_timeout = settings.ollama_timeout_seconds
     
     async def _call_openai_with_retry(
         self, 
@@ -145,13 +146,24 @@ class AIClient:
             }
         }
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(
-                f"{self.ollama_base_url}/api/chat",
-                json=payload
-            )
-            response.raise_for_status()
-            data = response.json()
+        last_error: Exception | None = None
+        for attempt in range(self.max_retries):
+            try:
+                async with httpx.AsyncClient(timeout=self.ollama_timeout) as client:
+                    response = await client.post(
+                        f"{self.ollama_base_url}/api/chat",
+                        json=payload
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                break
+            except Exception as e:
+                last_error = e
+                if attempt < self.max_retries - 1:
+                    delay = self.retry_delays[attempt]
+                    await asyncio.sleep(delay)
+                    continue
+                raise
 
         message = data.get("message", {})
         content = message.get("content")

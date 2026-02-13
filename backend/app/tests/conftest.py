@@ -1,6 +1,15 @@
 """
 Pytest configuration and fixtures for testing.
 """
+import os
+import sys
+
+# Ensure backend/ is on sys.path so "app" imports work when running pytest from repo root
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+BACKEND_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
+if BACKEND_ROOT not in sys.path:
+    sys.path.insert(0, BACKEND_ROOT)
+
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker

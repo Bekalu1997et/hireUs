@@ -104,7 +104,7 @@ class EvaluationsService:
 
         self._validate_scores(workflow, [s.model_dump() for s in evaluation_data.scores])
 
-        async with self.db.begin():
+        async with self.db.begin_nested():
             evaluation = await self.repository.create_evaluation(
                 workflow_id=workflow.id,
                 workflow_stage_id=stage.id,

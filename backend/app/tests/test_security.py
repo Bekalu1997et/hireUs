@@ -177,6 +177,12 @@ def test_password_strength_validation():
     assert valid is True
     assert error is None
 
+    # Too long (bcrypt limit)
+    long_password = "A" * 73 + "1a"
+    valid, error = validate_password_strength(long_password)
+    assert valid is False
+    assert "at most 72 bytes" in error
+
 
 @pytest.mark.property
 @given(

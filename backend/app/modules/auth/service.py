@@ -50,7 +50,7 @@ class AuthService:
                 detail=error_message
             )
 
-        async with self.db.begin():
+        async with self.db.begin_nested():
             # Check if user already exists
             existing_user = await self.repository.get_user_by_email(user_data.email)
             if existing_user:

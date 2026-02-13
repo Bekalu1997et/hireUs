@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     
     # Database
     database_url: str = Field(
-        default="postgresql+asyncpg://postgres:postgres@localhost:5432/hireus",
+        default="postgresql+asyncpg://postgres:hireus@localhost:5432/hireus",
         description="PostgreSQL database URL"
     )
     
@@ -45,8 +45,12 @@ class Settings(BaseSettings):
         description="Ollama API base URL"
     )
     ollama_model: str = Field(
-        default="phi4:latest",
+        default="tinyllama:latest",
         description="Ollama model to use"
+    )
+    ollama_timeout_seconds: int = Field(
+        default=120,
+        description="Ollama request timeout in seconds"
     )
     
     # CORS

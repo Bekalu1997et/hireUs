@@ -41,7 +41,7 @@ class OrganizationService:
         user: User,
     ) -> Organization:
         org = await self.get_organization(org_id, user)
-        async with self.db.begin():
+        async with self.db.begin_nested():
             org = await self.repository.update_organization(
                 org,
                 name=update.name,
@@ -112,7 +112,7 @@ class OrganizationService:
             )
 
         hashed_password = hash_password(request.password)
-        async with self.db.begin():
+        async with self.db.begin_nested():
             user = await self.repository.create_user(
                 email=email,
                 hashed_password=hashed_password,

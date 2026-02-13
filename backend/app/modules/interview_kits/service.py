@@ -76,12 +76,13 @@ class InterviewKitsService:
                 detail=str(exc),
             )
         except Exception as exc:
+            print("LLM invocation failed (interview kits):", repr(exc))
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="LLM invocation failed; please retry",
             )
 
-        async with self.db.begin():
+        async with self.db.begin_nested():
             kit = await self.repository.create_interview_kit(
                 role_id=role.id,
                 llm_model=settings.openai_model if settings.openai_api_key else settings.ollama_model,

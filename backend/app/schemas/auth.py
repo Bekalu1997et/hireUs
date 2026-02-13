@@ -7,7 +7,7 @@ from pydantic import BaseModel, EmailStr, Field
 class UserRegister(BaseModel):
     """Schema for user registration."""
     email: EmailStr
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=8, max_length=72)
     full_name: str = Field(min_length=1, max_length=255)
     organization_name: str = Field(min_length=1, max_length=255)
     organization_domain: str = Field(min_length=1, max_length=255)
@@ -16,7 +16,7 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     """Schema for user login."""
     email: EmailStr
-    password: str
+    password: str = Field(min_length=1, max_length=72)
 
 
 class Token(BaseModel):

@@ -5,7 +5,7 @@ Parses and validates LLM JSON responses.
 """
 import json
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union
 
 
 class LLMParseError(Exception):
@@ -40,6 +40,20 @@ def extract_json_from_response(response: str) -> str:
     return response.strip()
 
 
+def _repair_json(json_str: str) -> str:
+    """
+    Attempt to repair common JSON issues from LLMs.
+    - Replace single quotes with double quotes
+    - Remove trailing commas
+    """
+    cleaned = json_str.strip()
+    if "'" in cleaned and '"' not in cleaned:
+        cleaned = cleaned.replace("'", "\"")
+    # Remove trailing commas before } or ]
+    cleaned = re.sub(r",\s*([}\]])", r"\\1", cleaned)
+    return cleaned
+
+
 def parse_json_safely(json_str: str) -> Dict[str, Any]:
     """
     Parse JSON string with error handling.
@@ -55,8 +69,46 @@ def parse_json_safely(json_str: str) -> Dict[str, Any]:
     """
     try:
         return json.loads(json_str)
-    except json.JSONDecodeError as e:
-        raise LLMParseError(f"Failed to parse JSON: {str(e)}")
+    except json.JSONDecodeError:
+        try:
+            repaired = _repair_json(json_str)
+            return json.loads(repaired)
+        except json.JSONDecodeError as e:
+            raise LLMParseError(f"Failed to parse JSON: {str(e)}")
+
+
+def _normalize_questions(questions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Normalize common field variants from LLM responses.
+    """
+    normalized: List[Dict[str, Any]] = []
+    for idx, q in enumerate(questions, 1):
+        if not isinstance(q, dict):
+            continue
+        item = dict(q)
+
+        # Common field aliases
+        if "question" in item and "question_text" not in item:
+            item["question_text"] = item.pop("question")
+        if "rubric" in item and "evaluation_rubric" not in item:
+            item["evaluation_rubric"] = item.pop("rubric")
+        if "competency" in item and "competency_id" not in item:
+            item["competency_id"] = item.pop("competency")
+
+        # Coerce types
+        if "competency_id" in item and isinstance(item["competency_id"], str):
+            if item["competency_id"].isdigit():
+                item["competency_id"] = int(item["competency_id"])
+        if "order" in item and isinstance(item["order"], str):
+            if item["order"].isdigit():
+                item["order"] = int(item["order"])
+
+        # Fill missing order
+        if "order" not in item:
+            item["order"] = idx
+
+        normalized.append(item)
+    return normalized
 
 
 def parse_interview_kit_response(response: str) -> Dict[str, Any]:
@@ -86,7 +138,25 @@ def parse_interview_kit_response(response: str) -> Dict[str, Any]:
     """
     # Extract and parse JSON
     json_str = extract_json_from_response(response)
-    data = parse_json_safely(json_str)
+    data: Union[Dict[str, Any], List[Any]] = parse_json_safely(json_str)
+
+    # Accept a bare list of questions
+    if isinstance(data, list):
+        data = {"questions": data}
+
+    # If no "questions", try common alternatives
+    if isinstance(data, dict) and "questions" not in data:
+        for key in ("items", "data", "results"):
+            if key in data and isinstance(data[key], list):
+                data = {"questions": data[key]}
+                break
+
+    # As a last resort, find the first list value that looks like questions
+    if isinstance(data, dict) and "questions" not in data:
+        for value in data.values():
+            if isinstance(value, list) and value and isinstance(value[0], dict):
+                data = {"questions": value}
+                break
     
     # Validate structure
     if "questions" not in data:
@@ -98,7 +168,8 @@ def parse_interview_kit_response(response: str) -> Dict[str, Any]:
     if len(data["questions"]) == 0:
         raise LLMParseError("'questions' list cannot be empty")
     
-    # Validate each question
+    # Normalize and validate each question
+    data["questions"] = _normalize_questions(data["questions"])
     for i, question in enumerate(data["questions"]):
         if not isinstance(question, dict):
             raise LLMParseError(f"Question {i} must be a dict")
