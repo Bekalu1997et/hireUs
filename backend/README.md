@@ -38,6 +38,8 @@ createdb hireus
 createdb hireus_test
 ```
 
+set up your database url with password
+
 5. Run database migrations:
 ```bash
 alembic upgrade head

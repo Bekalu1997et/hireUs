@@ -48,6 +48,10 @@ class Settings(BaseSettings):
         default="phi4:latest",
         description="Ollama model to use"
     )
+    ollama_timeout_seconds: int = Field(
+        default=120,
+        description="Ollama request timeout in seconds"
+    )
     
     # CORS
     cors_origins: list[str] = Field(

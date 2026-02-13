@@ -34,6 +34,18 @@ def create_application() -> FastAPI:
 
     from app.modules.evaluations.router import router as evaluations_router
     app.include_router(evaluations_router, prefix="/api/evaluations", tags=["evaluations"])
+
+    from app.modules.interview_kits.router import router as interview_kits_router
+    app.include_router(interview_kits_router, prefix="/api/interview-kits", tags=["interview-kits"])
+
+    from app.modules.workflows.router import router as workflows_router
+    app.include_router(workflows_router, prefix="/api/workflows", tags=["workflows"])
+
+    from app.modules.organization.router import router as organization_router
+    app.include_router(organization_router, prefix="/api", tags=["organization"])
+
+    from app.modules.signals.router import router as signals_router
+    app.include_router(signals_router, prefix="/api/signals", tags=["signals"])
     
     @app.get("/health")
     async def health_check():
