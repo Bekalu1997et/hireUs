@@ -61,8 +61,8 @@ class Settings(BaseSettings):
     
     # Application
     app_name: str = Field(
-        default="Structured Interview Platform",
-        description="Application name"
+        default="hireUs",
+        description="an ai assistive unbiasted and structured workflow for hiring employees in startups"
     )
     debug: bool = Field(
         default=True,

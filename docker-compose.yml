@@ -35,6 +35,19 @@ services:
     volumes:
       - ollama_data:/root/.ollama
 
+  frontend:
+    build:
+      context: ./frontend
+    container_name: hireus_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - backend
+
 volumes:
   hireus_db_data:
   ollama_data:
