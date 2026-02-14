@@ -73,7 +73,7 @@ class TestCreateAccessToken:
             expires_delta=custom_delta
         )
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        exp_time = datetime.fromtimestamp(payload["exp"])
+        exp_time = datetime.utcfromtimestamp(payload["exp"])
         # Should expire in approximately 2 hours from now
         # Check that expiration is in the future and less than 3 hours
         now = datetime.utcnow()
@@ -252,4 +252,3 @@ class TestSecurityEdgeCases:
         """Test verification with malformed hash."""
         result = security.verify_password("password", "not-a-valid-hash")
         assert result is False
-

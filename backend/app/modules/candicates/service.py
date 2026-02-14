@@ -1,6 +1,4 @@
-from typing import Optional, List, Dict, Any
-import uuid
-from datetime import datetime
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.candicates.repository import CandidateRepository
@@ -9,7 +7,6 @@ from app.schemas.candidate import (
     CandidateUpdate,
     CandidateResponse,
     CandidateListResponse,
-    CandidateSearchRequest,
     CandidateSearchResponse,
     CandidateStats,
 )
@@ -45,10 +42,6 @@ class CandidateService:
         )
         if exists:
             raise ValueError("Candidate with this email already exists in the organization")
-
-        # Generate ID if not provided
-        if not hasattr(candidate_data, 'id') or not candidate_data.id:
-            candidate_data.id = str(uuid.uuid4())
 
         candidate = await self.repository.create(candidate_data)
         return CandidateResponse.model_validate(candidate)
@@ -244,4 +237,3 @@ class CandidateService:
             True if exists, False otherwise.
         """
         return await self.repository.exists_by_email(email, organization_id)
-

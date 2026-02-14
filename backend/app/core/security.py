@@ -14,7 +14,12 @@ from app.core.config import settings
 from app.db.session import get_db
 
 # Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use pbkdf2_sha256 as primary to avoid bcrypt 72-byte input limitations
+# while still allowing verification of existing bcrypt hashes.
+pwd_context = CryptContext(
+    schemes=["pbkdf2_sha256", "bcrypt"],
+    deprecated="auto",
+)
 
 # OAuth2 scheme for token extraction
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
@@ -177,4 +182,3 @@ def create_tokens_response(access_token: str, refresh_token: str) -> dict:
         "refresh_token": refresh_token,
         "token_type": "bearer"
     }
-

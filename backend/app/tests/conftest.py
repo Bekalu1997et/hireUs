@@ -2,6 +2,8 @@
 Pytest configuration and fixtures for HireUs Backend.
 Includes both unit test fixtures and API test fixtures.
 """
+import sys
+from pathlib import Path
 import pytest
 import asyncio
 import secrets
@@ -10,6 +12,9 @@ from typing import Generator, AsyncGenerator
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import NullPool
+
+# Ensure backend root is on sys.path when tests are run from varying CWDs.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app.main import app
 from app.db.base import Base
@@ -498,4 +503,3 @@ def expected_camel_case_dict() -> dict:
         "isActive": True,
         "userName": "test",
     }
-

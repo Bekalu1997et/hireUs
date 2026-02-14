@@ -3,18 +3,18 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { candidateApi } from "@/lib/api";
+import { useAuth } from "@/hooks/context/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Filter, Mail, Phone, ExternalLink } from "lucide-react";
+import { Plus, Search, Filter, Mail, Phone } from "lucide-react";
 import Link from "next/link";
 
 interface CandidateListItem {
   id: string;
-  first_name: string;
-  last_name: string;
+  full_name: string;
   email: string;
   phone: string | null;
   status: string;
@@ -26,7 +26,7 @@ interface CandidateListItem {
 }
 
 interface CandidateListResponse {
-  items: CandidateListItem[];
+  candidates: CandidateListItem[];
   total: number;
   skip: number;
   limit: number;
@@ -56,19 +56,18 @@ const getStatusBadgeVariant = (status: string): BadgeVariant => {
 };
 
 export default function CandidatesPage() {
+  const { organizationId } = useAuth();
   const { data, isLoading, error, refetch } = useQuery<CandidateListResponse>({
-    queryKey: ["candidates"],
+    queryKey: ["candidates", organizationId],
     queryFn: async () => {
-      const response = await candidateApi.getAll({ limit: 50 });
+      const response = await candidateApi.getAll({
+        limit: 50,
+        organization_id: organizationId || undefined,
+      });
       return response as CandidateListResponse;
     },
+    enabled: !!organizationId,
   });
-
-  // Helper function to get error message
-  const getErrorMessage = (err: unknown): string => {
-    if (err instanceof Error) return err.message;
-    return "Error loading candidates. Please try again.";
-  };
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -104,7 +103,15 @@ export default function CandidatesPage() {
       </div>
 
       {/* Candidates List */}
-      {isLoading ? (
+      {!organizationId ? (
+        <Card className="bg-yellow-50">
+          <CardContent className="p-6 text-center">
+            <p className="text-yellow-800">
+              No organization is associated with your account yet.
+            </p>
+          </CardContent>
+        </Card>
+      ) : isLoading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <Card key={i}>
@@ -129,7 +136,7 @@ export default function CandidatesPage() {
             </Button>
           </CardContent>
         </Card>
-      ) : data?.items.length === 0 ? (
+      ) : data?.candidates.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <h3 className="text-xl font-semibold mb-2">No candidates yet</h3>
@@ -146,7 +153,7 @@ export default function CandidatesPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {data?.items.map((candidate) => (
+          {data?.candidates.map((candidate) => (
             <Link key={candidate.id} href={`/candidates/${candidate.id}`}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="p-6">
@@ -154,7 +161,7 @@ export default function CandidatesPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-xl font-semibold">
-                          {candidate.first_name} {candidate.last_name}
+                          {candidate.full_name}
                         </h3>
                         {candidate.status && (
                           <Badge variant={getStatusBadgeVariant(candidate.status)}>
@@ -199,12 +206,11 @@ export default function CandidatesPage() {
       )}
 
       {/* Pagination Info */}
-      {data && data.items.length > 0 && (
+      {data && data.candidates.length > 0 && (
         <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-          Showing {data.items.length} of {data.total} candidates
+          Showing {data.candidates.length} of {data.total} candidates
         </div>
       )}
     </div>
   );
 }
-

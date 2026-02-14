@@ -48,6 +48,14 @@ class AuthService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Passwords do not match"
             )
+
+        # Enforce password strength rules
+        is_valid, error = await self.validate_password(register_data.password)
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error
+            )
         
         # Check if email already exists
         existing_user = await self.user_repo.get_by_email(register_data.email)
@@ -242,4 +250,3 @@ class AuthService:
         Count total users.
         """
         return await self.user_repo.count(is_active)
-

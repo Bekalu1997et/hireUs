@@ -10,14 +10,11 @@ class CandidateBase(BaseModel):
     email: EmailStr
     full_name: str = Field(..., min_length=2, max_length=200)
     phone: Optional[str] = None
-    current_company: Optional[str] = None
-    current_position: Optional[str] = None
-    location: Optional[str] = None
     linkedin_url: Optional[str] = None
     portfolio_url: Optional[str] = None
     resume_url: Optional[str] = None
     source: Optional[str] = None  # e.g., "LinkedIn", "Referral", "Direct"
-    notes: Optional[str] = None
+    status: Optional[str] = "applied"
 
 
 class CandidateCreate(CandidateBase):
@@ -25,7 +22,7 @@ class CandidateCreate(CandidateBase):
     organization_id: str
     role_id: Optional[str] = None
     workflow_id: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    candidate_metadata: Optional[Dict[str, Any]] = None
 
 
 class CandidateUpdate(BaseModel):
@@ -33,15 +30,12 @@ class CandidateUpdate(BaseModel):
     email: Optional[EmailStr] = None
     full_name: Optional[str] = Field(None, min_length=2, max_length=200)
     phone: Optional[str] = None
-    current_company: Optional[str] = None
-    current_position: Optional[str] = None
-    location: Optional[str] = None
     linkedin_url: Optional[str] = None
     portfolio_url: Optional[str] = None
     resume_url: Optional[str] = None
     source: Optional[str] = None
-    notes: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    status: Optional[str] = None
+    candidate_metadata: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
 
 
@@ -51,7 +45,7 @@ class CandidateInDB(CandidateBase):
     organization_id: str
     role_id: Optional[str] = None
     workflow_id: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    candidate_metadata: Optional[Dict[str, Any]] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -158,4 +152,3 @@ class CandidateAssignmentListResponse(BaseModel):
     """Response schema for list of assignments."""
     assignments: List[CandidateAssignmentResponse]
     total: int
-

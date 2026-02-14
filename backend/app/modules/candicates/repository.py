@@ -158,7 +158,6 @@ class CandidateRepository:
                 or_(
                     Candidate.full_name.ilike(search_pattern),
                     Candidate.email.ilike(search_pattern),
-                    Candidate.current_company.ilike(search_pattern),
                 )
             )
         ).offset(skip).limit(limit).order_by(Candidate.created_at.desc())
@@ -177,22 +176,18 @@ class CandidateRepository:
             The created candidate.
         """
         candidate = Candidate(
-            id=candidate_data.id if hasattr(candidate_data, 'id') else None,
             email=candidate_data.email,
             full_name=candidate_data.full_name,
             phone=candidate_data.phone,
-            current_company=candidate_data.current_company,
-            current_position=candidate_data.current_position,
-            location=candidate_data.location,
             linkedin_url=candidate_data.linkedin_url,
             portfolio_url=candidate_data.portfolio_url,
             resume_url=candidate_data.resume_url,
             source=candidate_data.source,
-            notes=candidate_data.notes,
+            status=candidate_data.status or "applied",
             organization_id=candidate_data.organization_id,
             role_id=candidate_data.role_id,
             workflow_id=candidate_data.workflow_id,
-            metadata=candidate_data.metadata,
+            candidate_metadata=candidate_data.candidate_metadata,
         )
         
         self.db.add(candidate)
@@ -377,4 +372,3 @@ class CandidateRepository:
             "by_source": by_source,
             "by_role": by_role,
         }
-

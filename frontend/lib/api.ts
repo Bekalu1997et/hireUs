@@ -38,7 +38,7 @@ class ApiClient {
           // Handle token refresh or redirect to login
           if (typeof window !== "undefined") {
             localStorage.removeItem("accessToken");
-            window.location.href = "/login";
+            window.location.href = "/auth/login";
           }
         }
         return Promise.reject(error);
@@ -511,8 +511,7 @@ export const candidateApi = {
 
   create: (data: {
     organization_id: string;
-    first_name: string;
-    last_name: string;
+    full_name: string;
     email: string;
     phone?: string;
     resume_url?: string;
@@ -520,12 +519,12 @@ export const candidateApi = {
     portfolio_url?: string;
     role_id?: string;
     source?: string;
-    notes?: string;
+    status?: string;
+    candidate_metadata?: Record<string, unknown>;
   }) => api.post("/candidates/", data),
 
   update: (id: string, data: Partial<{
-    first_name: string;
-    last_name: string;
+    full_name: string;
     email: string;
     phone: string;
     resume_url: string;
@@ -534,8 +533,8 @@ export const candidateApi = {
     role_id: string;
     status: string;
     source: string;
-    notes: string;
     is_active: boolean;
+    candidate_metadata: Record<string, unknown>;
   }>) => api.put(`/candidates/${id}`, data),
 
   delete: (id: string, hardDelete?: boolean) =>
@@ -545,38 +544,25 @@ export const candidateApi = {
   assignToStage: (candidateId: string, data: {
     workflow_id: string;
     stage_id: string;
-  }) => api.post(`/candidates/${candidateId}/assign-stage`, data),
+  }) =>
+    api.post("/workflows/candidates/move", {
+      candidate_id: candidateId,
+      to_stage_id: data.stage_id,
+    }),
 
   moveToStage: (candidateId: string, data: {
     stage_id: string;
     notes?: string;
-  }) => api.post(`/candidates/${candidateId}/move-stage`, data),
+  }) =>
+    api.post("/workflows/candidates/move", {
+      candidate_id: candidateId,
+      to_stage_id: data.stage_id,
+      reason: data.notes,
+    }),
 
   // Candidate evaluations
   getEvaluations: (candidateId: string) =>
-    api.get(`/candidates/${candidateId}/evaluations`),
-
-  // Candidate attachments
-  getAttachments: (candidateId: string) =>
-    api.get(`/candidates/${candidateId}/attachments`),
-
-  addAttachment: (candidateId: string, data: {
-    name: string;
-    url: string;
-    type: string;
-  }) => api.post(`/candidates/${candidateId}/attachments`, data),
-
-  // Candidate activities
-  getActivities: (candidateId: string, params?: {
-    skip?: number;
-    limit?: number;
-  }) => api.get(`/candidates/${candidateId}/activities`, { params }),
-
-  addActivity: (candidateId: string, data: {
-    activity_type: string;
-    description: string;
-    metadata?: Record<string, unknown>;
-  }) => api.post(`/candidates/${candidateId}/activities`, data),
+    api.get(`/evaluations/candidates/${candidateId}`),
 };
 
 // Organization API endpoints
