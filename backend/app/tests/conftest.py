@@ -9,7 +9,7 @@ import asyncio
 import secrets
 from datetime import datetime, timedelta
 from typing import Generator, AsyncGenerator
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import NullPool
 
@@ -84,8 +84,9 @@ async def client(db_session) -> AsyncGenerator[AsyncClient, None]:
         yield db_session
     
     app.dependency_overrides[get_db] = override_get_db
-    
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+
+    transport = ASGITransport(app=app, lifespan="off")
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
     
     app.dependency_overrides.clear()
