@@ -88,7 +88,7 @@ A Structured Technical Interview Platform with Hiring Intelligence for Founders.
 
 ---
 
-## Module 5 — Candidate Comparison View (Light AI)
+## Module 5 — Candidate Comparison View 
 **Purpose:** Simple visualization for candidate comparison.
 
 **MVP Features:**
@@ -98,11 +98,36 @@ A Structured Technical Interview Platform with Hiring Intelligence for Founders.
 - Interviewer confidence average
 - Basic math only
 
-**Optional:**
-- LLM-generated summary (e.g., "Candidate A shows strong system design but weaker communication…")
 
 **Exclusions:**
 - No ML prediction model
+
+---
+
+**Decision Brief Generator**
+
+Founder clicks:
+“Generate Hiring Brief”
+
+AI outputs:
+
+candidate summary
+
+Candidate strengths
+
+Risk areas
+
+Signal gaps
+
+Interview agreement level
+
+Suggested hire / no hire (with explanation)
+
+This is powerful — but simple to build.
+
+It uses structured data you already collected.
+
+No ML required.
 
 ---
 
@@ -350,6 +375,8 @@ Founder clicks:
 “Generate Hiring Brief”
 
 AI outputs:
+
+candidate summary
 
 Candidate strengths
 

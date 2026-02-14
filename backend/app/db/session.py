@@ -9,13 +9,19 @@ from sqlalchemy.pool import NullPool
 from app.core.config import settings
 from app.db.base import Base
 
+# Use SQLite for development (override .env if needed for local dev)
+# For production, use the DATABASE_URL from settings
+_db_url = settings.DATABASE_URL
+if "localhost" in _db_url or "postgres" in _db_url:
+    # Force SQLite for local development
+    _db_url = "sqlite+aiosqlite:///./hireus.db"
+
 # Create async engine
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    _db_url,
     echo=settings.DEBUG,
     pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    poolclass=NullPool,  # Use NullPool for SQLite
 )
 
 # Create async session factory
@@ -26,6 +32,9 @@ async_session_factory = async_sessionmaker(
     autocommit=False,
     autoflush=False,
 )
+
+# Alias for convenience (used in seed script and elsewhere)
+AsyncSessionLocal = async_session_factory
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

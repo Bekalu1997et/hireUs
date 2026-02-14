@@ -264,7 +264,7 @@ class Candidate(Base):
     source: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)  # linkedin, referral, direct, etc.
     
     # Metadata
-    metadata: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
+    candidate_metadata: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_by: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -422,7 +422,7 @@ class InterviewAssignment(Base):
     )
     
     # Relationships
-    candidate: Mapped["Candidate"] = relationship("Candidate", back_populates="feedbacks")
+    candidate: Mapped["Candidate"] = relationship("Candidate", back_populates="interview_assignments")
     interviewer: Mapped["User"] = relationship("User", back_populates="interview_assignments")
     interview_kit: Mapped[Optional["InterviewKit"]] = relationship("InterviewKit", back_populates="assignments")
     feedback: Mapped[Optional["Feedback"]] = relationship(
@@ -536,7 +536,7 @@ class AuditLog(Base):
     entity_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     old_values: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     new_values: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    metadata: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
+    audit_metadata: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
     ip_address: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     user_agent: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

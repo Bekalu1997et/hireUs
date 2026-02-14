@@ -1,0 +1,287 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: hireus-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hireus
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: hireus-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Application
+      APP_NAME: "HireUs - AI-Powered Hiring Platform"
+      DEBUG: "true"
+      
+      # Database
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/hireus
+      SYNC_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/hireus
+      
+      # JWT Authentication
+      SECRET_KEY: hireus-super-secret-key-change-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      
+      # First Superuser
+      FIRST_SUPERUSER_EMAIL: admin@hireus.com
+      FIRST_SUPERUSER_PASSWORD: admin123
+      
+      # CORS
+      CORS_ORIGINS: http://localhost:3000,http://frontend:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - backend_cache:/app/.cache
+
+  # Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      target: development
+    container_name: hireus-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+  # Seed Data Service (runs once and exits)
+  seed:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: hireus-seed
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/hireus
+      SYNC_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/hireus
+      FIRST_SUPERUSER_EMAIL: admin@hireus.com
+      FIRST_SUPERUSER_PASSWORD: admin123
+      SECRET_KEY: hireus-super-secret-key-change-in-production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    entrypoint: ["python", "-c"]
+    command:
+      - |
+        import asyncio
+        import sys
+        sys.path.insert(0, '/app')
+        from app.db.session import engine, AsyncSessionLocal
+        from app.db.base import Base
+        from app.db.models import User, Organization, Role, Workflow, Candidate, InterviewKit
+        from app.core.security import get_password_hash
+        from datetime import datetime
+        import uuid
+        
+        async def seed_data():
+            # Import all models to register them
+            from app.db import models
+            
+            # Create tables
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            
+            async with AsyncSessionLocal() as session:
+                # Check if superuser exists
+                from sqlalchemy import select
+                result = await session.execute(
+                    select(User).where(User.email == "admin@hireus.com")
+                )
+                existing_user = result.scalar_one_or_none()
+                
+                if not existing_user:
+                    # Create superuser
+                    superuser = User(
+                        id=str(uuid.uuid4()),
+                        email="admin@hireus.com",
+                        hashed_password=get_password_hash("admin123"),
+                        full_name="Admin User",
+                        role="superadmin",
+                        is_superuser=True,
+                        is_active=True,
+                        email_verified=True,
+                        created_at=datetime.utcnow()
+                    )
+                    session.add(superuser)
+                    print("✓ Created superuser: admin@hireus.com")
+                
+                # Check if organization exists
+                result = await session.execute(
+                    select(Organization).where(Organization.slug == "acme-corp")
+                )
+                existing_org = result.scalar_one_or_none()
+                
+                if not existing_org:
+                    # Create sample organization
+                    org = Organization(
+                        id=str(uuid.uuid4()),
+                        name="Acme Corporation",
+                        slug="acme-corp",
+                        description="A leading technology company",
+                        industry="Technology",
+                        size="50-200",
+                        is_active=True,
+                        created_at=datetime.utcnow()
+                    )
+                    session.add(org)
+                    await session.flush()
+                    print("✓ Created organization: Acme Corporation")
+                    
+                    # Create sample roles
+                    roles_data = [
+                        {
+                            "title": "Senior Python Developer",
+                            "slug": "senior-python-developer",
+                            "description": "Build scalable backend services",
+                            "department": "Engineering",
+                            "seniority": "Senior",
+                            "tech_stack": ["Python", "FastAPI", "PostgreSQL", "Docker"],
+                            "core_competencies": ["Problem Solving", "System Design", "Code Quality"],
+                            "mission": "Build high-performance APIs"
+                        },
+                        {
+                            "title": "Frontend Engineer",
+                            "slug": "frontend-engineer",
+                            "description": "Create beautiful user interfaces",
+                            "department": "Engineering",
+                            "seniority": "Mid-Level",
+                            "tech_stack": ["React", "Next.js", "TypeScript", "Tailwind"],
+                            "core_competencies": ["UI/UX", "Component Design", "State Management"],
+                            "mission": "Deliver exceptional user experiences"
+                        },
+                        {
+                            "title": "Product Manager",
+                            "slug": "product-manager",
+                            "description": "Lead product strategy and execution",
+                            "department": "Product",
+                            "seniority": "Senior",
+                            "tech_stack": ["Agile", "Jira", "Figma"],
+                            "core_competencies": ["Strategy", "Communication", "Analytics"],
+                            "mission": "Build products customers love"
+                        }
+                    ]
+                    
+                    for role_data in roles_data:
+                        role = Role(
+                            id=str(uuid.uuid4()),
+                            organization_id=org.id,
+                            created_by=superuser.id if existing_user else None,
+                            is_active=True,
+                            created_at=datetime.utcnow(),
+                            **role_data
+                        )
+                        session.add(role)
+                    
+                    print(f"✓ Created {len(roles_data)} sample roles")
+                    
+                    # Create sample workflows
+                    workflows_data = [
+                        {
+                            "name": "Standard Interview Pipeline",
+                            "description": "Default hiring workflow",
+                            "stages": [
+                                {"id": "1", "name": "Applied", "color": "#6B7280"},
+                                {"id": "2", "name": "Screening", "color": "#3B82F6"},
+                                {"id": "3", "name": "Technical Interview", "color": "#8B5CF6"},
+                                {"id": "4", "name": "Culture Fit", "color": "#10B981"},
+                                {"id": "5", "name": "Offer", "color": "#F59E0B"},
+                                {"id": "6", "name": "Hired", "color": "#22C55E"}
+                            ],
+                            "is_default": True
+                        }
+                    ]
+                    
+                    for workflow_data in workflows_data:
+                        workflow = Workflow(
+                            id=str(uuid.uuid4()),
+                            organization_id=org.id,
+                            created_by=superuser.id if existing_user else None,
+                            is_active=True,
+                            created_at=datetime.utcnow(),
+                            **workflow_data
+                        )
+                        session.add(workflow)
+                    
+                    print(f"✓ Created {len(workflows_data)} sample workflows")
+                    
+                    # Create sample interview kits
+                    kits_data = [
+                        {
+                            "title": "Python Technical Interview",
+                            "type": "coding",
+                            "description": "Assess Python programming skills",
+                            "estimated_duration_minutes": 60,
+                            "questions": [
+                                "Explain the difference between list and tuple",
+                                "How does Python's garbage collection work?",
+                                "Implement a function to reverse a string"
+                            ]
+                        },
+                        {
+                            "title": "System Design Discussion",
+                            "type": "system_design",
+                            "description": "Evaluate system design skills",
+                            "estimated_duration_minutes": 45,
+                            "questions": [
+                                "Design a URL shortener service",
+                                "How would you design a chat application?",
+                                "Scale a web application to millions of users"
+                            ]
+                        }
+                    ]
+                    
+                    for kit_data in kits_data:
+                        kit = InterviewKit(
+                            id=str(uuid.uuid4()),
+                            organization_id=org.id,
+                            created_by=superuser.id if existing_user else None,
+                            is_active=True,
+                            is_template=True,
+                            version=1,
+                            created_at=datetime.utcnow(),
+                            **kit_data
+                        )
+                        session.add(kit)
+                    
+                    print(f"✓ Created {len(kits_data)} sample interview kits")
+                
+                await session.commit()
+                print("\n✅ Seed data created successfully!")
+        
+        asyncio.run(seed_data())
+
+volumes:
+  postgres_data:
+  backend_cache:
+
