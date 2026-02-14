@@ -139,12 +139,10 @@ class EvaluationRepository:
         conditions = []
         
         if organization_id:
-            # Join with candidate and organization
-            from app.db.models import Candidate, Organization
+            # Filter through candidate relationship
             conditions.append(Candidate.organization_id == organization_id)
         
         if role_id:
-            from app.db.models import Candidate
             conditions.append(Candidate.role_id == role_id)
         
         if candidate_id:
@@ -400,4 +398,3 @@ class EvaluationRepository:
             "recommendation_breakdown": rec_breakdown,
             "competency_scores": avg_competency_scores,
         }
-

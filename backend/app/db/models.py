@@ -37,6 +37,11 @@ class OrganizationMemberRole(str, PyEnum):
     VIEWER = "viewer"
 
 
+def _enum_values(enum_cls):
+    """Persist enum values (lowercase) instead of enum names."""
+    return [item.value for item in enum_cls]
+
+
 class User(Base):
     """
     User model for authentication and authorization.
@@ -49,7 +54,10 @@ class User(Base):
     full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.INTERVIEWER)
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, values_callable=_enum_values),
+        default=UserRole.INTERVIEWER,
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -161,7 +169,7 @@ class OrganizationMember(Base):
         nullable=False
     )
     role: Mapped[OrganizationMemberRole] = mapped_column(
-        Enum(OrganizationMemberRole), 
+        Enum(OrganizationMemberRole, values_callable=_enum_values),
         default=OrganizationMemberRole.MEMBER
     )
     invited_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

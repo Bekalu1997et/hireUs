@@ -20,8 +20,9 @@ from app.core.config import settings
 # access to the values within the .ini file in use.
 config = context.config
 
-# Override the sqlalchemy.url from settings
-config.set_main_option("sqlalchemy.url", settings.SYNC_DATABASE_URL)
+# Override the sqlalchemy.url from settings.
+# Alembic's ConfigParser treats "%" as interpolation, so escape it.
+config.set_main_option("sqlalchemy.url", settings.SYNC_DATABASE_URL.replace("%", "%%"))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -88,4 +89,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-
