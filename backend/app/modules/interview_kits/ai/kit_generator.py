@@ -1,12 +1,11 @@
 """
 Kit Generator for interview kit AI module.
-Handles AI-powered interview kit generation using Google Gemini.
+Handles AI-powered interview kit generation using Ollama.
 """
 import json
 from typing import Optional
-from google.generativeai.types import GenerationConfig
 
-from app.core.llm.schema import get_gemini_client, is_gemini_configured, InterviewType
+from app.core.llm.schema import get_ollama_client, is_ollama_configured, InterviewType
 from app.modules.interview_kits.ai.schema import (
     InterviewKitInput,
     InterviewKitOutput,
@@ -18,7 +17,7 @@ from app.modules.interview_kits.ai.prompts import build_kit_prompt
 
 class KitGenerator:
     """
-    Generator for interview kits using Google Gemini.
+    Generator for interview kits using Ollama.
     """
     
     def __init__(self):
@@ -26,15 +25,15 @@ class KitGenerator:
         self._model = None
     
     @property
-    def model(self):
-        """Lazy load the Gemini model."""
+    def client(self):
+        """Lazy load the Ollama client."""
         if self._model is None:
-            self._model = get_gemini_client()
+            self._model = get_ollama_client()
         return self._model
     
     def is_configured(self) -> bool:
-        """Check if Gemini API is configured."""
-        return is_gemini_configured()
+        """Check if Ollama is configured."""
+        return is_ollama_configured()
     
     async def generate(
         self,
@@ -43,7 +42,7 @@ class KitGenerator:
         max_tokens: int = 3000
     ) -> InterviewKitOutput:
         """
-        Generate an interview kit using Gemini.
+        Generate an interview kit using Ollama.
         
         Args:
             kit_input: The interview kit details for generation
@@ -54,7 +53,7 @@ class KitGenerator:
             InterviewKitOutput with generated interview kit data
         """
         if not self.is_configured():
-            raise ValueError("Gemini API key not configured. Set GEMINI_API_KEY in environment.")
+            raise ValueError("Ollama is not configured. Set OLLAMA_BASE_URL and OLLAMA_MODEL in environment.")
         
         try:
             prompt = build_kit_prompt(
@@ -67,21 +66,15 @@ class KitGenerator:
                 additional_context=kit_input.additional_context
             )
             
-            # Configure generation
-            generation_config = GenerationConfig(
+            response = await self.client.generate(
+                prompt=prompt,
                 temperature=temperature,
-                max_output_tokens=max_tokens,
-                response_mime_type="application/json"
-            )
-            
-            # Generate response
-            response = self.model.generate_content(
-                prompt,
-                generation_config=generation_config
+                max_tokens=max_tokens,
+                format="json",
             )
             
             # Parse response
-            response_text = response.text
+            response_text = response.content
             
             # Handle potential markdown code block wrapping
             if "```json" in response_text:
@@ -118,9 +111,9 @@ class KitGenerator:
             return kit
             
         except json.JSONDecodeError as e:
-            raise ValueError(f"Failed to parse Gemini response as JSON: {str(e)}")
+            raise ValueError(f"Failed to parse Ollama response as JSON: {str(e)}")
         except Exception as e:
-            raise RuntimeError(f"Gemini API error: {str(e)}")
+            raise RuntimeError(f"Ollama API error: {str(e)}")
 
 
 # Singleton instance
@@ -133,4 +126,3 @@ def get_kit_generator() -> KitGenerator:
     if _kit_generator is None:
         _kit_generator = KitGenerator()
     return _kit_generator
-

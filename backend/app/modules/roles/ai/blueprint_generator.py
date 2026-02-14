@@ -1,12 +1,11 @@
 """
 Blueprint Generator for role AI module.
-Handles AI-powered role blueprint generation using Google Gemini.
+Handles AI-powered role blueprint generation using Ollama.
 """
 import json
 from typing import List, Optional
-from google.generativeai.types import GenerationConfig
 
-from app.core.llm.schema import get_gemini_client, is_gemini_configured
+from app.core.llm.schema import get_ollama_client, is_ollama_configured
 from app.modules.roles.ai.schema import (
     RoleBlueprintInput,
     RoleBlueprintOutput,
@@ -21,7 +20,7 @@ from app.modules.roles.ai.prompts import (
 
 class BlueprintGenerator:
     """
-    Generator for role blueprints using Google Gemini.
+    Generator for role blueprints using Ollama.
     """
     
     def __init__(self):
@@ -29,15 +28,15 @@ class BlueprintGenerator:
         self._model = None
     
     @property
-    def model(self):
-        """Lazy load the Gemini model."""
+    def client(self):
+        """Lazy load the Ollama client."""
         if self._model is None:
-            self._model = get_gemini_client()
+            self._model = get_ollama_client()
         return self._model
     
     def is_configured(self) -> bool:
-        """Check if Gemini API is configured."""
-        return is_gemini_configured()
+        """Check if Ollama is configured."""
+        return is_ollama_configured()
     
     def _build_prompt(self, role_input: RoleBlueprintInput) -> str:
         """Build the prompt for role blueprint generation."""
@@ -55,7 +54,7 @@ class BlueprintGenerator:
         max_tokens: int = 2000
     ) -> RoleBlueprintOutput:
         """
-        Generate a role blueprint using Gemini.
+        Generate a role blueprint using Ollama.
         
         Args:
             role_input: The role details for blueprint generation
@@ -66,26 +65,20 @@ class BlueprintGenerator:
             RoleBlueprintOutput with generated blueprint data
         """
         if not self.is_configured():
-            raise ValueError("Gemini API key not configured. Set GEMINI_API_KEY in environment.")
+            raise ValueError("Ollama is not configured. Set OLLAMA_BASE_URL and OLLAMA_MODEL in environment.")
         
         try:
             prompt = self._build_prompt(role_input)
             
-            # Configure generation
-            generation_config = GenerationConfig(
+            response = await self.client.generate(
+                prompt=prompt,
                 temperature=temperature,
-                max_output_tokens=max_tokens,
-                response_mime_type="application/json"
-            )
-            
-            # Generate response
-            response = self.model.generate_content(
-                prompt,
-                generation_config=generation_config
+                max_tokens=max_tokens,
+                format="json",
             )
             
             # Parse response
-            response_text = response.text
+            response_text = response.content
             
             # Handle potential markdown code block wrapping
             if "```json" in response_text:
@@ -112,9 +105,9 @@ class BlueprintGenerator:
             return blueprint
             
         except json.JSONDecodeError as e:
-            raise ValueError(f"Failed to parse Gemini response as JSON: {str(e)}")
+            raise ValueError(f"Failed to parse Ollama response as JSON: {str(e)}")
         except Exception as e:
-            raise RuntimeError(f"Gemini API error: {str(e)}")
+            raise RuntimeError(f"Ollama API error: {str(e)}")
     
     async def generate_competency_suggestions(
         self,
@@ -139,18 +132,14 @@ class BlueprintGenerator:
         )
         
         try:
-            generation_config = GenerationConfig(
+            response = await self.client.generate(
+                prompt=prompt,
                 temperature=0.7,
-                max_output_tokens=1000,
-                response_mime_type="application/json"
+                max_tokens=1000,
+                format="json",
             )
             
-            response = self.model.generate_content(
-                prompt,
-                generation_config=generation_config
-            )
-            
-            response_text = response.text
+            response_text = response.content
             if "```json" in response_text:
                 response_text = response_text.split("```json")[1].split("```")[0]
             elif "```" in response_text:
@@ -173,4 +162,3 @@ def get_blueprint_generator() -> BlueprintGenerator:
     if _blueprint_generator is None:
         _blueprint_generator = BlueprintGenerator()
     return _blueprint_generator
-

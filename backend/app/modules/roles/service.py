@@ -274,14 +274,14 @@ class RoleService:
         request: GenerateBlueprintRequest
     ) -> GenerateBlueprintResponse:
         """
-        Generate a role blueprint using AI (Gemini).
+        Generate a role blueprint using AI (Ollama).
         """
         try:
-            # Check if Gemini is configured
+            # Check if Ollama is configured
             if not self.blueprint_generator.is_configured():
                 return GenerateBlueprintResponse(
                     success=False,
-                    error="AI service not configured. Please set GEMINI_API_KEY in environment.",
+                    error="AI service not configured. Please set OLLAMA_BASE_URL and OLLAMA_MODEL in environment.",
                 )
             
             # Create input for AI
@@ -396,4 +396,3 @@ class RoleService:
         await self.db.refresh(duplicate)
         
         return self._model_to_response(duplicate)
-

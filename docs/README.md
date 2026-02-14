@@ -42,7 +42,7 @@ HireUs is a comprehensive hiring platform with AI-assisted interview kits, struc
 - **Database**: PostgreSQL with SQLAlchemy ORM
 - **Authentication**: JWT-based auth with refresh tokens
 - **Migrations**: Alembic
-- **AI**: OpenAI GPT-4 / Google Gemini integration
+- **AI**: Ollama integration (default: tinyllama)
 - **Validation**: Pydantic v2
 
 ### Frontend
@@ -175,6 +175,7 @@ DEBUG=true
 # Database
 DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/hireus
 SYNC_DATABASE_URL=postgresql://user:password@localhost:5432/hireus
+DB_AUTO_CREATE_TABLES=false
 
 # JWT Authentication
 SECRET_KEY=your-secret-key-change-in-production
@@ -186,13 +187,9 @@ REFRESH_TOKEN_EXPIRE_DAYS=7
 FIRST_SUPERUSER_EMAIL=admin@hireus.com
 FIRST_SUPERUSER_PASSWORD=admin123
 
-# AI Configuration (OpenAI)
-OPENAI_API_KEY=your-openai-api-key
-OPENAI_MODEL=gpt-4
-
-# AI Configuration (Google Gemini)
-GEMINI_API_KEY=your-gemini-api-key
-GEMINI_MODEL=gemini-pro
+# AI Configuration (Ollama)
+OLLAMA_BASE_URL=http://ollama:11434
+OLLAMA_MODEL=tinyllama
 
 # CORS
 CORS_ORIGINS=http://localhost:3000,http://localhost:8000
@@ -202,6 +199,7 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:8000
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+NEXT_INTERNAL_API_URL=http://localhost:8000/api/v1
 ```
 
 ## 📖 Documentation
@@ -264,4 +262,3 @@ MIT License - see LICENSE file for details.
 ---
 
 <p align="center">Built with ❤️ for better hiring decisions</p>
-

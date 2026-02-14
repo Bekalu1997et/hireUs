@@ -4,8 +4,9 @@ Shared types used across all AI modules.
 """
 import enum
 from typing import Optional, Any, Dict
+
+import httpx
 from pydantic import BaseModel, Field
-import google.generativeai as genai
 
 from app.core.config import settings
 
@@ -20,108 +21,83 @@ class LLMResponse(BaseModel):
 
 class LLMClient:
     """Base class for LLM clients."""
-    
+
     async def generate(
         self,
         prompt: str,
         temperature: float = 0.7,
         max_tokens: int = 2048,
-        **kwargs
+        **kwargs: Any,
     ) -> LLMResponse:
-        """
-        Generate content using the LLM.
-        
-        Args:
-            prompt: Input prompt
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens to generate
-            **kwargs: Additional parameters
-            
-        Returns:
-            LLMResponse with generated content
-        """
         raise NotImplementedError("Subclasses must implement generate()")
 
 
-class GeminiClient(LLMClient):
-    """Google Gemini LLM client."""
-    
-    def __init__(self, model_name: Optional[str] = None):
-        """
-        Initialize Gemini client.
-        
-        Args:
-            model_name: Name of Gemini model to use
-        """
-        self.model_name = model_name or settings.GEMINI_MODEL
-        self._client = None
-    
-    def _get_client(self) -> genai.GenerativeModel:
-        """Get or create Gemini client."""
-        if self._client is None:
-            api_key = settings.GEMINI_API_KEY
-            if api_key:
-                genai.configure(api_key=api_key)
-            self._client = genai.GenerativeModel(self.model_name)
-        return self._client
-    
+class OllamaClient(LLMClient):
+    """Ollama LLM client."""
+
+    def __init__(
+        self,
+        base_url: Optional[str] = None,
+        model_name: Optional[str] = None,
+    ) -> None:
+        self.base_url = (base_url or settings.OLLAMA_BASE_URL).rstrip("/")
+        self.model_name = model_name or settings.OLLAMA_MODEL
+
     async def generate(
         self,
         prompt: str,
         temperature: float = 0.7,
         max_tokens: int = 2048,
-        **kwargs
+        **kwargs: Any,
     ) -> LLMResponse:
-        """Generate content using Gemini."""
-        client = self._get_client()
-        
-        response = client.generate_content(
-            prompt,
-            generation_config={
-                'temperature': temperature,
-                'max_output_tokens': max_tokens,
-                **kwargs
-            }
-        )
-        
+        payload: Dict[str, Any] = {
+            "model": self.model_name,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": temperature,
+                "num_predict": max_tokens,
+            },
+        }
+        if "format" in kwargs and kwargs["format"]:
+            payload["format"] = kwargs["format"]
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(f"{self.base_url}/api/generate", json=payload)
+            response.raise_for_status()
+            data = response.json()
+
         return LLMResponse(
-            content=response.text,
-            model=self.model_name,
-            usage={'prompt_tokens': -1, 'completion_tokens': -1},  # Not available in this version
-            finish_reason='stop'
+            content=data.get("response", ""),
+            model=data.get("model", self.model_name),
+            usage={
+                "prompt_tokens": data.get("prompt_eval_count"),
+                "completion_tokens": data.get("eval_count"),
+            },
+            finish_reason=data.get("done_reason", "stop"),
         )
 
 
 class InterviewType(str, enum.Enum):
     """Interview type enumeration."""
+
     CODING = "coding"
     SYSTEM_DESIGN = "system_design"
     PM_CASE = "pm_case"
     BEHAVIORAL = "behavioral"
 
 
-# Singleton instances
-_gemini_client: Optional[genai.GenerativeModel] = None
+_ollama_client: Optional[OllamaClient] = None
 
 
-def get_gemini_client() -> genai.GenerativeModel:
-    """
-    Get or create the Gemini model singleton.
-    
-    Returns:
-        Configured Gemini GenerativeModel instance
-    """
-    global _gemini_client
-    if _gemini_client is None:
-        api_key = settings.GEMINI_API_KEY
-        if api_key:
-            genai.configure(api_key=api_key)
-        model_name = settings.GEMINI_MODEL
-        _gemini_client = genai.GenerativeModel(model_name)
-    return _gemini_client
+def get_ollama_client() -> OllamaClient:
+    """Get or create the Ollama client singleton."""
+    global _ollama_client
+    if _ollama_client is None:
+        _ollama_client = OllamaClient()
+    return _ollama_client
 
 
-def is_gemini_configured() -> bool:
-    """Check if Gemini API is configured."""
-    return bool(settings.GEMINI_API_KEY)
-
+def is_ollama_configured() -> bool:
+    """Check if Ollama settings are configured."""
+    return bool(settings.OLLAMA_BASE_URL and settings.OLLAMA_MODEL)

@@ -39,6 +39,7 @@ cd backend
 python -m venv venv
 source venv/bin/activate  # or `venv\Scripts\activate` on Windows
 pip install -r requirements.txt
+# create/update backend/.env (backend loads this file explicitly)
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
@@ -47,6 +48,7 @@ uvicorn app.main:app --reload
 ```bash
 cd frontend
 npm install
+# configure frontend/.env.local (see frontend/.env.local.example)
 npm run dev
 ```
 
@@ -83,4 +85,3 @@ hireUs/
 ## License
 
 MIT
-

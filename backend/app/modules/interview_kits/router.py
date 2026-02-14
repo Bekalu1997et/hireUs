@@ -128,7 +128,7 @@ async def generate_interview_kit(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Generate an interview kit using AI (Gemini).
+    Generate an interview kit using AI (Ollama).
     
     This endpoint creates a comprehensive interview kit including:
     - Problem statement
@@ -319,4 +319,3 @@ async def get_kit_questions(
         "questions": kit.questions or [],
         "total": len(kit.questions) if kit.questions else 0
     }
-

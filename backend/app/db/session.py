@@ -7,22 +7,20 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
-from app.db.base import Base
 
-# Use SQLite for development (override .env if needed for local dev)
-# For production, use the DATABASE_URL from settings
+# Use DATABASE_URL as configured.
 _db_url = settings.DATABASE_URL
-if "localhost" in _db_url or "postgres" in _db_url:
-    # Force SQLite for local development
-    _db_url = "sqlite+aiosqlite:///./hireus.db"
+_is_sqlite = _db_url.startswith("sqlite")
 
 # Create async engine
-engine = create_async_engine(
-    _db_url,
-    echo=settings.DEBUG,
-    pool_pre_ping=True,
-    poolclass=NullPool,  # Use NullPool for SQLite
-)
+engine_kwargs = {
+    "echo": settings.DEBUG,
+    "pool_pre_ping": True,
+}
+if _is_sqlite:
+    engine_kwargs["poolclass"] = NullPool  # SQLite does not support multithreaded pools well
+
+engine = create_async_engine(_db_url, **engine_kwargs)
 
 # Create async session factory
 async_session_factory = async_sessionmaker(
@@ -55,9 +53,13 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db() -> None:
     """
-    Initialize database tables.
-    Creates all tables defined in models.
+    Initialize database tables when explicitly enabled.
     """
+    if not settings.DB_AUTO_CREATE_TABLES:
+        return
+
+    from app.db.base import Base
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -91,4 +93,3 @@ async def get_sync_db():
     )
     
     return sync_session_factory()
-

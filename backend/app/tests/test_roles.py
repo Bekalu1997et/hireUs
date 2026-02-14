@@ -335,19 +335,19 @@ class TestGenerateBlueprintResponse:
                 "nice_to_have": {},
                 "interview_stages": []
             },
-            "model_used": "gemini-pro"
+            "model_used": "tinyllama"
         }
         response = GenerateBlueprintResponse(**data)
         assert response.success is True
         assert response.blueprint is not None
-        assert response.model_used == "gemini-pro"
+        assert response.model_used == "tinyllama"
 
     def test_blueprint_response_error(self):
         """Test error blueprint generation response."""
         data = {
             "success": False,
             "error": "API rate limit exceeded",
-            "model_used": "gemini-pro"
+            "model_used": "tinyllama"
         }
         response = GenerateBlueprintResponse(**data)
         assert response.success is False
@@ -456,4 +456,3 @@ class TestRoleResponse:
         assert response.id == "role-123"
         assert response.slug == "python-developer"
         assert response.is_active is True
-

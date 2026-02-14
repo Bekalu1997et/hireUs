@@ -346,7 +346,7 @@ async def improve_feedback(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Improve feedback clarity using AI (Gemini).
+    Improve feedback clarity using AI (Ollama).
     
     This endpoint uses AI to rewrite vague feedback into clearer,
     more actionable feedback.
@@ -513,4 +513,3 @@ async def get_assignment_feedback_status(
     service = EvaluationService(db)
     
     return await service.check_assignment_feedback_required(assignment_id)
-

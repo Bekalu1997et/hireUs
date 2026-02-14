@@ -58,7 +58,7 @@ Output a structured JSON response following the exact schema provided."""
         Initialize the decision brief generator.
         
         Args:
-            llm_client: LLM client for generating content (uses Gemini if not provided)
+            llm_client: LLM client for generating content (uses Ollama if not provided)
             model_name: Model name to use for generation
         """
         self.llm_client = llm_client
@@ -67,8 +67,8 @@ Output a structured JSON response following the exact schema provided."""
         # Try to get default LLM client if not provided
         if self.llm_client is None:
             try:
-                from app.core.llm.gemini import GeminiClient
-                self.llm_client = GeminiClient()
+                from app.core.llm.base import OllamaClient
+                self.llm_client = OllamaClient()
             except Exception:
                 # Will handle gracefully when generating
                 pass
@@ -615,4 +615,3 @@ Ensure the JSON is valid and complete. Do not include markdown formatting or cod
             'risks_acknowledged': [],
             'next_steps': next_steps if next_steps else ['Review final decision with hiring team']
         }
-

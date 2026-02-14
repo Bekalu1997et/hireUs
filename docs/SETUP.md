@@ -68,7 +68,7 @@ pip install -r requirements.txt
 
 #### 4. Configure Environment Variables
 
-Create a `.env` file in the `backend` directory:
+Create a `.env` file in the `backend` directory. Backend settings are loaded explicitly from `backend/.env`.
 
 ```env
 # Application
@@ -78,6 +78,7 @@ DEBUG=true
 # Database
 DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/hireus
 SYNC_DATABASE_URL=postgresql://user:password@localhost:5432/hireus
+DB_AUTO_CREATE_TABLES=false
 
 # JWT Authentication
 SECRET_KEY=your-super-secret-key-change-in-production
@@ -89,11 +90,9 @@ REFRESH_TOKEN_EXPIRE_DAYS=7
 FIRST_SUPERUSER_EMAIL=admin@hireus.com
 FIRST_SUPERUSER_PASSWORD=admin123
 
-# AI Configuration (Optional - for AI features)
-OPENAI_API_KEY=your-openai-api-key
-OPENAI_MODEL=gpt-4
-GEMINI_API_KEY=your-gemini-api-key
-GEMINI_MODEL=gemini-pro
+# AI Configuration (Ollama)
+OLLAMA_BASE_URL=http://ollama:11434
+OLLAMA_MODEL=tinyllama
 
 # CORS
 CORS_ORIGINS=http://localhost:3000,http://localhost:8000
@@ -152,6 +151,7 @@ Create a `.env.local` file in the `frontend` directory:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+NEXT_INTERNAL_API_URL=http://localhost:8000/api/v1
 ```
 
 #### 4. Start Development Server
@@ -170,7 +170,7 @@ The frontend will be available at http://localhost:3000
 
 ```bash
 # Start all services
-docker-compose up -d
+docker-compose up -d --build
 
 # View logs
 docker-compose logs -f
@@ -185,7 +185,8 @@ docker-compose down
 |---------|------|-------------|
 | Frontend | 3000 | Next.js application |
 | Backend | 8000 | FastAPI application |
-| PostgreSQL | 5432 | Database |
+| Ollama | 11434 | Local LLM API |
+| PostgreSQL | 5433 | Database (host) |
 | Redis | 6379 | Cache (optional) |
 
 ### Docker Commands
@@ -216,7 +217,7 @@ docker-compose exec postgres psql -U postgres
 alembic upgrade head
 
 # Create initial data (optional)
-alembic upgrade head + seed_data
+docker-compose run --rm seed
 ```
 
 ### Database Migrations
@@ -257,13 +258,14 @@ The application uses the following main models:
 | `APP_NAME` | No | "HireUs" | Application name |
 | `DEBUG` | No | false | Debug mode |
 | `DATABASE_URL` | Yes | - | PostgreSQL connection string |
+| `DB_AUTO_CREATE_TABLES` | No | false | Auto-run `create_all()` at startup (keep false when using Alembic) |
 | `SECRET_KEY` | Yes | - | JWT signing key |
 | `ALGORITHM` | No | HS256 | JWT algorithm |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | 30 | Token expiration |
 | `FIRST_SUPERUSER_EMAIL` | No | admin@hireus.com | Initial admin email |
 | `FIRST_SUPERUSER_PASSWORD` | No | admin123 | Initial admin password |
-| `OPENAI_API_KEY` | No | - | OpenAI API key |
-| `GEMINI_API_KEY` | No | - | Google Gemini API key |
+| `OLLAMA_BASE_URL` | Yes | http://ollama:11434 | Ollama API URL |
+| `OLLAMA_MODEL` | Yes | tinyllama | Ollama model name |
 | `CORS_ORIGINS` | No | localhost:3000 | Allowed origins |
 
 ### Frontend Environment Variables
@@ -271,6 +273,7 @@ The application uses the following main models:
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `NEXT_PUBLIC_API_URL` | Yes | http://localhost:8000/api/v1 | Backend API URL |
+| `NEXT_INTERNAL_API_URL` | No | http://backend:8000/api/v1 | Internal API URL used by Next.js server-side code |
 
 ---
 
@@ -422,4 +425,3 @@ kill -9 <PID>
 After setup, see:
 - [Architecture Guide](ARCHITECTURE.md) - Understanding the system design
 - [API Reference](API.md) - Complete API documentation
-

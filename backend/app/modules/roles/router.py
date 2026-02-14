@@ -151,7 +151,7 @@ async def generate_role_blueprint(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Generate a role blueprint using AI (Gemini).
+    Generate a role blueprint using AI (Ollama).
     
     This endpoint creates a comprehensive role definition including:
     - Role mission statement
@@ -294,4 +294,3 @@ async def get_blueprint_template():
             ]
         }
     }
-

@@ -3,6 +3,7 @@ Application configuration settings.
 Loads environment variables and provides centralized access to all config values.
 """
 import os
+from pathlib import Path
 import secrets
 from typing import List, Optional
 from functools import lru_cache
@@ -27,6 +28,7 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./hireus.db"
     SYNC_DATABASE_URL: str = "sqlite:///./hireus.db"
+    DB_AUTO_CREATE_TABLES: bool = False
     
     # JWT - Use secure default with fallback to generated key
     SECRET_KEY: str = "your-secret-key-change-in-production"
@@ -55,9 +57,9 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
     
-    # AI Configuration (Google Gemini)
-    GEMINI_API_KEY: Optional[str] = None
-    GEMINI_MODEL: str = "gemini-pro"
+    # AI Configuration (Ollama)
+    OLLAMA_BASE_URL: str = "http://ollama:11434"
+    OLLAMA_MODEL: str = "tinyllama"
     
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000"
@@ -70,7 +72,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
     
     class Config:
-        env_file = ".env"
+        env_file = str(Path(__file__).resolve().parents[2] / ".env")
         case_sensitive = True
         extra = "ignore"
     
@@ -97,4 +99,3 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
-

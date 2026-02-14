@@ -1,12 +1,11 @@
 """
 Feedback Refiner for evaluations AI module.
-Handles AI-powered feedback improvement using Google Gemini.
+Handles AI-powered feedback improvement using Ollama.
 """
 import json
 from typing import Optional, Dict, Any, List
-from google.generativeai.types import GenerationConfig
 
-from app.core.llm.schema import get_gemini_client, is_gemini_configured
+from app.core.llm.schema import get_ollama_client, is_ollama_configured
 from app.schemas.evaluation import (
     FeedbackImproveRequest,
     FeedbackImproveResponse,
@@ -16,7 +15,7 @@ from app.schemas.evaluation import (
 
 class FeedbackRefiner:
     """
-    Refiner for interview feedback using Google Gemini.
+    Refiner for interview feedback using Ollama.
     Provides AI assistance to improve feedback clarity and quality.
     """
     
@@ -25,15 +24,15 @@ class FeedbackRefiner:
         self._model = None
     
     @property
-    def model(self):
-        """Lazy load the Gemini model."""
+    def client(self):
+        """Lazy load the Ollama client."""
         if self._model is None:
-            self._model = get_gemini_client()
+            self._model = get_ollama_client()
         return self._model
     
     def is_configured(self) -> bool:
-        """Check if Gemini API is configured."""
-        return is_gemini_configured()
+        """Check if Ollama is configured."""
+        return is_ollama_configured()
     
     async def improve_feedback(
         self,
@@ -61,7 +60,7 @@ class FeedbackRefiner:
         if not self.is_configured():
             return FeedbackImproveResponse(
                 success=False,
-                error="Gemini API key not configured. Set GEMINI_API_KEY in environment."
+                error="Ollama is not configured. Set OLLAMA_BASE_URL and OLLAMA_MODEL in environment."
             )
         
         try:
@@ -75,21 +74,15 @@ class FeedbackRefiner:
                 context=context
             )
             
-            # Configure generation
-            generation_config = GenerationConfig(
-                temperature=0.3,  # Lower temperature for more consistent output
-                max_output_tokens=2000,
-                response_mime_type="application/json"
-            )
-            
-            # Generate response
-            response = self.model.generate_content(
-                prompt,
-                generation_config=generation_config
+            response = await self.client.generate(
+                prompt=prompt,
+                temperature=0.3,
+                max_tokens=2000,
+                format="json",
             )
             
             # Parse response
-            response_text = response.text
+            response_text = response.content
             
             # Handle potential markdown code block wrapping
             if "```json" in response_text:
@@ -179,7 +172,7 @@ class FeedbackRefiner:
         if not self.is_configured():
             return {
                 "success": False,
-                "error": "Gemini API key not configured"
+                "error": "Ollama is not configured"
             }
         
         try:
@@ -190,18 +183,14 @@ class FeedbackRefiner:
                 context=context
             )
             
-            generation_config = GenerationConfig(
+            response = await self.client.generate(
+                prompt=prompt,
                 temperature=0.3,
-                max_output_tokens=500,
-                response_mime_type="application/json"
+                max_tokens=500,
+                format="json",
             )
             
-            response = self.model.generate_content(
-                prompt,
-                generation_config=generation_config
-            )
-            
-            response_text = response.text
+            response_text = response.content
             
             if "```json" in response_text:
                 response_text = response_text.split("```json")[1].split("```")[0]
@@ -272,17 +261,13 @@ Weaknesses noted: {weaknesses or "None provided"}
 Write a professional, constructive summary suitable for a hiring decision:
 """.strip()
             
-            generation_config = GenerationConfig(
+            response = await self.client.generate(
+                prompt=prompt,
                 temperature=0.4,
-                max_output_tokens=500
+                max_tokens=500,
             )
             
-            response = self.model.generate_content(
-                prompt,
-                generation_config=generation_config
-            )
-            
-            return response.text.strip()
+            return response.content.strip()
             
         except Exception as e:
             return ""
@@ -436,4 +421,3 @@ def get_feedback_refiner() -> FeedbackRefiner:
     if _refiner is None:
         _refiner = FeedbackRefiner()
     return _refiner
-

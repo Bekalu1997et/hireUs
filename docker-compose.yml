@@ -1,4 +1,24 @@
 services:
+  # Ollama LLM Service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hireus-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  # Pull TinyLlama model on startup
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: hireus-ollama-init
+    depends_on:
+      - ollama
+    entrypoint: ["sh", "-c"]
+    command: "sleep 5 && ollama pull tinyllama"
+    restart: "no"
+
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
@@ -35,6 +55,7 @@ services:
       # Database
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/hireus
       SYNC_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/hireus
+      DB_AUTO_CREATE_TABLES: "false"
       
       # JWT Authentication
       SECRET_KEY: hireus-super-secret-key-change-in-production
@@ -48,9 +69,17 @@ services:
       
       # CORS
       CORS_ORIGINS: http://localhost:3000,http://frontend:3000
+      
+      # AI (Ollama)
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: tinyllama
     depends_on:
       postgres:
         condition: service_healthy
+      ollama:
+        condition: service_started
+      ollama-init:
+        condition: service_completed_successfully
     volumes:
       - ./backend:/app
       - backend_cache:/app/.cache
@@ -67,6 +96,7 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+      NEXT_INTERNAL_API_URL: http://backend:8000/api/v1
     depends_on:
       - backend
     volumes:
@@ -83,13 +113,18 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/hireus
       SYNC_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/hireus
+      DB_AUTO_CREATE_TABLES: "false"
       FIRST_SUPERUSER_EMAIL: admin@hireus.com
       FIRST_SUPERUSER_PASSWORD: admin123
       SECRET_KEY: hireus-super-secret-key-change-in-production
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: tinyllama
     depends_on:
       postgres:
         condition: service_healthy
       backend:
+        condition: service_started
+      ollama:
         condition: service_started
     entrypoint: ["python", "-c"]
     command:
@@ -97,8 +132,7 @@ services:
         import asyncio
         import sys
         sys.path.insert(0, '/app')
-        from app.db.session import engine, AsyncSessionLocal
-        from app.db.base import Base
+        from app.db.session import AsyncSessionLocal
         from app.db.models import User, Organization, Role, Workflow, Candidate, InterviewKit
         from app.core.security import get_password_hash
         from datetime import datetime
@@ -107,10 +141,6 @@ services:
         async def seed_data():
             # Import all models to register them
             from app.db import models
-            
-            # Create tables
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
             
             async with AsyncSessionLocal() as session:
                 # Check if superuser exists
@@ -284,4 +314,4 @@ services:
 volumes:
   postgres_data:
   backend_cache:
-
+  ollama_data:

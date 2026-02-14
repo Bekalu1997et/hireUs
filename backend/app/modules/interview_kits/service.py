@@ -293,14 +293,14 @@ class InterviewKitService:
         request: GenerateInterviewKitRequest
     ) -> GenerateInterviewKitResponse:
         """
-        Generate an interview kit using AI (Gemini).
+        Generate an interview kit using AI (Ollama).
         """
         try:
-            # Check if Gemini is configured
+            # Check if Ollama is configured
             if not self.kit_generator.is_configured():
                 return GenerateInterviewKitResponse(
                     success=False,
-                    error="AI service not configured. Please set GEMINI_API_KEY in environment.",
+                    error="AI service not configured. Please set OLLAMA_BASE_URL and OLLAMA_MODEL in environment.",
                 )
             
             # Map interview type string to enum
@@ -396,4 +396,3 @@ class InterviewKitService:
         kit_create = InterviewKitCreate(**merged_data)
         
         return await self.create(kit_create, user_id)
-

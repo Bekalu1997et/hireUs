@@ -28,7 +28,7 @@ HireUs follows a **client-server architecture** with:
 - **Backend**: FastAPI REST API handling business logic, database operations, and AI integrations
 - **Frontend**: Next.js SPA providing user interface
 - **Database**: PostgreSQL for persistent storage
-- **AI Services**: OpenAI GPT-4 and Google Gemini for AI features
+- **AI Services**: Ollama for local AI features
 
 ### Core Design Principles
 
@@ -97,8 +97,7 @@ HireUs follows a **client-server architecture** with:
         │     AI        │
         │  Services     │
         │ ┌───────────┐ │
-        │ │  OpenAI   │ │
-        │ │  Gemini   │ │
+        │ │  Ollama   │ │
         │ └───────────┘ │
         └───────────────┘
 ```
@@ -119,7 +118,6 @@ backend/
 │   │   ├── utils.py            # Helper functions
 │   │   └── llm/               # AI/LLM integrations
 │   │       ├── base.py
-│   │       ├── gemini.py
 │   │       └── schema.py
 │   ├── db/                     # Database layer
 │   │   ├── base.py             # SQLAlchemy base
@@ -481,4 +479,3 @@ class LLMBase(ABC):
 - Review the [API Reference](API.md) for detailed endpoint documentation
 - Explore the codebase to understand implementation details
 - Check [Setup Guide](SETUP.md) for development environment configuration
-

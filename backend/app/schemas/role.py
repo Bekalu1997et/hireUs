@@ -168,7 +168,7 @@ class GenerateBlueprintResponse(BaseModel):
     success: bool
     blueprint: Optional[AIGeneratedBlueprint] = None
     error: Optional[str] = None
-    model_used: str = "gemini-pro"
+    model_used: str = "tinyllama"
 
 
 # ============== Validation Schemas ==============
@@ -193,4 +193,3 @@ class InterviewType(str, Enum):
     CULTURE_FIT = "culture_fit"
     TECHNICAL_SCREEN = "technical_screen"
     FINAL_ROUND = "final_round"
-
