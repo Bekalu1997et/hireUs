@@ -77,7 +77,6 @@ class UserRepository:
         user = User(
             email=user_data.email.lower(),
             full_name=user_data.full_name,
-            phone=user_data.phone,
             hashed_password=get_password_hash(user_data.password),
         )
         
@@ -214,4 +213,3 @@ class UserRepository:
         """
         user = await self.get_by_email(email)
         return user is not None
-

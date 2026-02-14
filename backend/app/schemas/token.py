@@ -15,6 +15,7 @@ class UserBase(BaseModel):
     """
     email: EmailStr
     full_name: Optional[str] = None
+    phone: Optional[str] = None
 
 
 class UserCreate(UserBase):
@@ -212,4 +213,3 @@ class HealthCheck(BaseModel):
     status: str
     database: str
     version: str = "1.0.0"
-

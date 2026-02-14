@@ -277,6 +277,10 @@ class Candidate(Base):
     # Relationships
     organization: Mapped["Organization"] = relationship("Organization", back_populates="candidates")
     role: Mapped[Optional["Role"]] = relationship("Role", back_populates="candidates")
+    interview_assignments: Mapped[List["InterviewAssignment"]] = relationship(
+        "InterviewAssignment",
+        back_populates="candidate"
+    )
     feedbacks: Mapped[List["Feedback"]] = relationship(
         "Feedback",
         back_populates="candidate"
@@ -550,4 +554,3 @@ class AuditLog(Base):
 
 # Import uuid for the models
 import uuid
-

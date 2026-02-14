@@ -6,6 +6,8 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
+pytestmark = pytest.mark.asyncio
+
 
 @pytest.mark.integration
 class TestAuthAPI:

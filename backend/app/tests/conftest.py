@@ -5,19 +5,19 @@ Includes both unit test fixtures and API test fixtures.
 import sys
 from pathlib import Path
 import pytest
-import asyncio
 import secrets
 from datetime import datetime, timedelta
 from typing import Generator, AsyncGenerator
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import StaticPool
 
 # Ensure backend root is on sys.path when tests are run from varying CWDs.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app.main import app
 from app.db.base import Base
+from app.db import models as _models  # Ensure models are registered on Base.metadata
 from app.db.session import get_db
 from app.core.config import settings as app_settings
 
@@ -32,16 +32,6 @@ TEST_PASSWORD = "TestPass123"
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 
-# ============== Event Loop Fixture ==============
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create event loop for async tests."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-
 # ============== Database Fixtures ==============
 
 @pytest.fixture(scope="function")
@@ -49,7 +39,8 @@ async def db_engine():
     """Create test database engine."""
     engine = create_async_engine(
         TEST_DATABASE_URL,
-        poolclass=NullPool,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
         echo=False
     )
     
@@ -85,7 +76,7 @@ async def client(db_session) -> AsyncGenerator[AsyncClient, None]:
     
     app.dependency_overrides[get_db] = override_get_db
 
-    transport = ASGITransport(app=app, lifespan="off")
+    transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
     
