@@ -3,7 +3,7 @@ Comparison service.
 Business logic for candidate comparison.
 """
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Feedback, Candidate
@@ -146,7 +146,7 @@ class ComparisonService:
             )
 
         return CandidateComparisonResponse(
-            compared_at=datetime.utcnow(),
+            compared_at=datetime.now(timezone.utc),
             candidates_compared=len(candidates),
             candidates=candidate_summaries,
             score_summaries=score_summaries,
