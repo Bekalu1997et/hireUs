@@ -165,11 +165,8 @@ async def generate_role_blueprint(
 
 @router.post("/blueprint/create", response_model=RoleResponse, status_code=status.HTTP_201_CREATED)
 async def create_role_with_blueprint(
-    organization_id: str,
-    title: str,
-    seniority: str,
-    stack: list = Query(default_factory=list),
-    team_context: Optional[str] = None,
+    request: GenerateBlueprintRequest,
+    organization_id: str = Query(..., description="Organization ID"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -183,13 +180,6 @@ async def create_role_with_blueprint(
     service = RoleService(db)
     
     # First generate the blueprint
-    request = GenerateBlueprintRequest(
-        title=title,
-        seniority=seniority,
-        stack=stack,
-        team_context=team_context
-    )
-    
     blueprint_response = await service.generate_blueprint(request)
     
     if not blueprint_response.success or not blueprint_response.blueprint:
@@ -201,10 +191,10 @@ async def create_role_with_blueprint(
     # Create role with blueprint
     role_data = RoleCreate(
         organization_id=organization_id,
-        title=title,
-        seniority=seniority,
-        stack=stack,
-        team_context=team_context
+        title=request.title,
+        seniority=request.seniority,
+        tech_stack=request.stack,
+        team_context=request.team_context
     )
     
     return await service.create_with_ai_blueprint(

@@ -2,6 +2,7 @@
 Database models.
 SQLAlchemy models for the application.
 """
+import uuid
 from datetime import datetime
 from enum import Enum as PyEnum
 from typing import List, Optional
@@ -558,7 +559,3 @@ class AuditLog(Base):
     
     def __repr__(self) -> str:
         return f"<AuditLog(id={self.id}, action={self.action}, entity_type={self.entity_type})>"
-
-
-# Import uuid for the models
-import uuid

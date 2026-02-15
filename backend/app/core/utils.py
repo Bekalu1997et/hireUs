@@ -1,7 +1,7 @@
 """
 Utility functions for the application.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 import uuid
 import secrets
@@ -27,7 +27,7 @@ def datetime_utcnow() -> datetime:
     Get current UTC datetime.
     Wrapper for easier testing/mocking.
     """
-    return datetime.utcnow()
+    return datetime.now(timezone.utc)
 
 
 def format_datetime(dt: datetime, format_str: str = "%Y-%m-%d %H:%M:%S") -> str:

@@ -151,12 +151,12 @@ class UserRepository:
         """
         Update user's last login timestamp.
         """
-        from datetime import datetime
+        from datetime import datetime, timezone
         
         await self.db.execute(
             update(User)
             .where(User.id == user_id)
-            .values(last_login=datetime.utcnow())
+            .values(last_login=datetime.now(timezone.utc))
         )
         await self.db.commit()
     

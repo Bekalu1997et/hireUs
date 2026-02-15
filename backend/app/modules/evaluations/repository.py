@@ -292,7 +292,7 @@ class EvaluationRepository:
         """
         Submit a feedback/scorecard.
         """
-        from datetime import datetime
+        from datetime import datetime, timezone
         
         feedback = await self.get_by_id(feedback_id)
         if not feedback:
@@ -300,7 +300,7 @@ class EvaluationRepository:
         
         feedback.is_draft = False
         feedback.is_submitted = True
-        feedback.submitted_at = datetime.utcnow()
+        feedback.submitted_at = datetime.now(timezone.utc)
         
         await self.db.commit()
         await self.db.refresh(feedback)
