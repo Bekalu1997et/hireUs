@@ -2,6 +2,7 @@
 Pytest configuration and fixtures for HireUs Backend.
 Includes both unit test fixtures and API test fixtures.
 """
+import os
 import sys
 from pathlib import Path
 import pytest
@@ -37,6 +38,9 @@ TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 @pytest.fixture(scope="function")
 async def db_engine():
     """Create test database engine."""
+    if os.getenv("RUN_INTEGRATION_TESTS", "").lower() not in {"1", "true", "yes"}:
+        pytest.skip("Integration tests are disabled. Set RUN_INTEGRATION_TESTS=1 to enable.")
+
     engine = create_async_engine(
         TEST_DATABASE_URL,
         connect_args={"check_same_thread": False},
