@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    container_name: hireus_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: hireus
+      POSTGRES_DB: hireus
+    ports:
+      - "5432:5432"
+    volumes:
+      - hireus_db_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+    container_name: hireus_backend
+    env_file:
+      - .env
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hireus_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: hireus_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - backend
+
+volumes:
+  hireus_db_data:
+  ollama_data:
